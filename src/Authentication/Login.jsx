@@ -22,11 +22,17 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const success = await login({ email, password });
+    const userData = await login({ email, password });
     setIsLoading(false);
 
-    if (success) {
-      if (user?.roles?.name("ROLE_ADMIN")) {
+    if (userData) {
+      console.log("✅ Logged in user:", userData);
+
+      const isAdmin = userData.roles?.includes("ROLE_ADMIN");
+
+      console.log("👑 Is Admin:", isAdmin);
+
+      if (isAdmin) {
         navigate("/dashboard");
       } else {
         navigate("/");

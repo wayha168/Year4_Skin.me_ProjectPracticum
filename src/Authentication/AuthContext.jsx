@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
           const { data } = await axios.get("/user", {
             headers: { Authorization: `Bearer ${token}` },
           });
+
           setUser(data);
         } else {
           setUser(null);
@@ -59,17 +60,17 @@ export const AuthProvider = ({ children }) => {
         if (userData?.email) Cookies.set("email", userData.email, { expires: 7 });
 
         setUser(userData);
-        await getUser();
-        console.log("Login successful, navigating to home.", userData);
-        return true;
+        console.log("✅ Login successful:", userData);
+
+        return userData; // ✅ return the actual user
       } else {
         setError(response.data?.message || "Login failed. Please try again.");
-        return false;
+        return null;
       }
     } catch (err) {
       console.error("Login error details:", err.response || err);
       handleAuthError(err);
-      return false;
+      return null;
     }
   };
 
