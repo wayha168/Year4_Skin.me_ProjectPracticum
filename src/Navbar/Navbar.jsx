@@ -1,8 +1,16 @@
 import React from "react";
-import { Link } from "react-router-dom";
-// import logo from "../assets/logo_skin.me.png";
+import { Link, useNavigate } from "react-router-dom";
+import useAuthContext from "../Authentication/AuthContext";
 
 const Navbar = () => {
+  const { user, logout } = useAuthContext();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout(); // clear auth data from context + localStorage/cookies
+    navigate("/auth/login");
+  };
+
   return (
     <nav className="bg-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -31,18 +39,37 @@ const Navbar = () => {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex space-x-4">
-            <Link
-              to="/login"
-              className="px-4 py-2 text-pink-600 border border-pink-600 rounded-lg hover:bg-pink-50 transition"
-            >
-              Login
-            </Link>
-            <Link
-              to="/signup"
-              className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
-            >
-              Sign Up
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  to="/profile"
+                  className="px-4 py-2 text-pink-600 border border-pink-600 rounded-lg hover:bg-pink-50 transition"
+                >
+                  Profile
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="px-4 py-2 text-pink-600 border border-pink-600 rounded-lg hover:bg-pink-50 transition"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/signup"
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}

@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-// import { CgPhone } from "react-icons/cg";
-// import { FaFacebook, FaGoogle } from "react-icons/fa";
+import { CgPhone } from "react-icons/cg";
+import { FaFacebook, FaGoogle } from "react-icons/fa";
 import useAuthContext from "../Authentication/AuthContext";
 import Loading from "../Components/Loading/Loading";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, error, user } = useAuthContext();
+  const { login, error } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -98,7 +98,7 @@ const Login = () => {
         <div className="my-4 flex items-center justify-center text-sm text-gray-500">Or continue with</div>
 
         <div className="flex gap-2">
-          {/* <button className="flex-1 py-2 rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2">
+          <button className="flex-1 py-2 rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2">
             <FaFacebook /> Facebook
           </button>
           <button className="flex-1 py-2 rounded-lg bg-red-600 text-white flex items-center justify-center gap-2">
@@ -106,7 +106,7 @@ const Login = () => {
           </button>
           <button className="flex-1 py-2 rounded-lg bg-gray-600 text-white flex items-center justify-center gap-2">
             <CgPhone /> Phone
-          </button> */}
+          </button>
         </div>
 
         <p className="mt-4 text-center text-gray-700">

@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
 
       if (token) {
-        await axios.post("/logout", null, {
+        await axios.post("/auth/logout", null, {
           headers: { Authorization: `Bearer ${token}` },
         });
       }
