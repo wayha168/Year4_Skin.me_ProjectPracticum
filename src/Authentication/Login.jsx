@@ -1,139 +1,116 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+// import { CgPhone } from "react-icons/cg";
+// import { FaFacebook, FaGoogle } from "react-icons/fa";
+import useAuthContext from "../Authentication/AuthContext";
+import Loading from "../Components/Loading/Loading";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); // loading state
+  const { login, error, user } = useAuthContext();
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "email") setEmail(value);
+    if (name === "password") setPassword(value);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true); // start loading
+    setIsLoading(true);
 
-    try {
-      const response = await axios.post("http://localhost:8080/api/v1/auth/login", {
-        email,
-        password,
-      });
+    const success = await login({ email, password });
+    setIsLoading(false);
 
-      console.log("Login response:", response.data);
-
-      if (response.data && response.data.success === true) {
-        localStorage.setItem("token", response.data.data.token);
-        // Simulate small delay to show loading spinner
-        setTimeout(() => {
-          setLoading(false);
-          navigate("/"); 
-        }, 500);
+    if (success) {
+      if (user?.roles?.name("ROLE_ADMIN")) {
+        navigate("/dashboard");
       } else {
-        setLoading(false);
-        setError(response.data.message || "Login failed");
+        navigate("/");
       }
-    } catch (err) {
-      setLoading(false);
-      setError(err.response?.data?.message || "Server error");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#F3DCD5FF" }}>
-      <div className="w-full max-w-xl p-8 rounded-lg shadow-lg" style={{ backgroundColor: "#F4BEAE" }}>
-        <h1 className="text-3xl font-bold mb-6 text-center" style={{ color: "#D4593D" }}>
-          Login
-        </h1>
+    <section className="min-h-screen bg-pink-100 flex items-center justify-center">
+      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+        <h1 className="text-3xl font-bold text-center text-pink-400 mb-4">Login</h1>
 
-        {/* Error message */}
-        {error && (
-          <p className="mb-4 text-center font-bold" style={{ color: "red" }}>
-            {error}
-          </p>
-        )}
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-        {/* Login form */}
-        <form className="space-y-4" onSubmit={handleLogin}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block mb-1" style={{ color: "#D4593D" }}>
-              Email
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Email</label>
             <input
               type="email"
+              name="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none"
+              onChange={handleInputChange}
               placeholder="Enter your email"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none"
               required
-              disabled={loading} // disable input while loading
+              disabled={isLoading}
             />
           </div>
 
           <div>
-            <label className="block mb-1" style={{ color: "#D4593D" }}>
-              Password
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Password</label>
             <input
               type="password"
+              name="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none"
+              onChange={handleInputChange}
               placeholder="Enter your password"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none"
               required
-              disabled={loading} // disable input while loading
+              disabled={isLoading}
             />
           </div>
 
           <div className="text-right">
-            <Link to="/forgot-password" className="text-sm" style={{ color: "#D4593D" }}>
+            <Link to="/forgot-password" className="text-sm text-pink-400">
               Forgot Password?
             </Link>
           </div>
 
           <button
             type="submit"
-            className={`w-full py-2 mt-2 rounded-lg font-bold ${
-              loading ? "opacity-50 cursor-not-allowed" : ""
+            className={`w-full py-2 mt-2 rounded-lg font-bold text-white ${
+              isLoading ? "bg-pink-200 cursor-not-allowed" : "bg-pink-400 hover:bg-pink-500"
             }`}
-            style={{ backgroundColor: "#D4593D", color: "#F4BEAE" }}
-            disabled={loading}
+            disabled={isLoading}
           >
-            {loading ? "Logging in..." : "Login"}
+            {isLoading ? "Logging in..." : "Login"}
           </button>
         </form>
 
-        {/* Social login */}
-        <div className="my-4 flex items-center justify-center space-x-2">
-          <span style={{ color: "#D4593D" }}>or login with</span>
+        {isLoading && <Loading />}
+
+        <div className="my-4 flex items-center justify-center text-sm text-gray-500">Or continue with</div>
+
+        <div className="flex gap-2">
+          {/* <button className="flex-1 py-2 rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2">
+            <FaFacebook /> Facebook
+          </button>
+          <button className="flex-1 py-2 rounded-lg bg-red-600 text-white flex items-center justify-center gap-2">
+            <FaGoogle /> Google
+          </button>
+          <button className="flex-1 py-2 rounded-lg bg-gray-600 text-white flex items-center justify-center gap-2">
+            <CgPhone /> Phone
+          </button> */}
         </div>
 
-        <div className="flex flex-col gap-2">
-          <button
-            className="w-full py-2 rounded-lg font-bold border border-gray-300"
-            style={{ backgroundColor: "#1877F2", color: "#fff" }}
-            disabled={loading}
-          >
-            Login with Facebook
-          </button>
-          <button
-            className="w-full py-2 rounded-lg font-bold border border-gray-300"
-            style={{ backgroundColor: "#DB4437", color: "#fff" }}
-            disabled={loading}
-          >
-            Login with Google
-          </button>
-        </div>
-
-        {/* Signup link */}
-        <p className="mt-4 text-center" style={{ color: "#D4593D" }}>
+        <p className="mt-4 text-center text-gray-700">
           Don't have an account?{" "}
-          <Link to="/signup" className="font-bold underline">
+          <Link to="/signup" className="font-bold text-pink-400 underline">
             Sign Up
           </Link>
         </p>
       </div>
-    </div>
+    </section>
   );
 };
 
