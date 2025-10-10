@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState, useContext } from "react";
 import axios from "../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
@@ -60,9 +60,8 @@ export const AuthProvider = ({ children }) => {
         if (userData?.email) Cookies.set("email", userData.email, { expires: 7 });
 
         setUser(userData);
-        console.log("✅ Login successful:", userData);
 
-        return userData; // ✅ return the actual user
+        return userData;
       } else {
         setError(response.data?.message || "Login failed. Please try again.");
         return null;
@@ -112,9 +111,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const handleAuthError = (err) => {
-    if (err.response) {
+    if (err?.response) {
       if (err.response.status === 422) {
-        setError(err.response.data.error);
+        setError(err.response.data?.error || "Validation error.");
       } else {
         setError("An error occurred. Please try again later.");
       }
