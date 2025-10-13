@@ -1,10 +1,16 @@
 import axios from "axios";
 
-export default axios.create({
+const instance = axios.create({
   baseURL: "http://localhost:8080/api/v1",
-  withCredentials: true, 
-  headers: {
-    "Content-Type": "application/json",
-    // "Ngrok-Skip-Intercept": "true",
-  },
+  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
 });
+
+// Add JWT automatically to every request
+instance.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) config.headers["Authorization"] = `Bearer ${token}`;
+  return config;
+});
+
+export default instance;

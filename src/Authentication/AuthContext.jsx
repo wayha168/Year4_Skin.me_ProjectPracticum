@@ -6,50 +6,39 @@ import Cookies from "js-cookie";
 const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    // ✅ Load user from localStorage on mount
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
+
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = Cookies.get("token");
-        if (token) {
-          const { data } = await axios.get("/user", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          setUser(data);
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error("Error checking authentication:", err);
-        setUser(null);
-      }
-    };
-    checkAuth();
+    const token = Cookies.get("token");
+    if (token && !user) {
+      fetchUser(token);
+    }
   }, []);
 
-  const getUser = async () => {
+  // Fetch user from API
+  const fetchUser = async (token) => {
     try {
-      const token = Cookies.get("token");
-      if (!token) throw new Error("No token available");
-
       const { data } = await axios.get("/user", {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       setUser(data);
+      localStorage.setItem("user", JSON.stringify(data)); // ✅ persist
     } catch (err) {
-      handleAuthError(err);
+      console.error("Failed to fetch user:", err);
+      logout();
     }
   };
 
   const login = async ({ email, password }) => {
     try {
       setError("");
-
       const response = await axios.post("/auth/login", { email, password });
 
       if (response.status === 200 && response.data?.data?.jwtToken) {
@@ -57,37 +46,36 @@ export const AuthProvider = ({ children }) => {
         const userData = response.data.data;
 
         Cookies.set("token", token, { expires: 7 });
-        if (userData?.email) Cookies.set("email", userData.email, { expires: 7 });
-
         setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData)); // ✅ persist
 
         return userData;
       } else {
-        setError(response.data?.message || "Login failed. Please try again.");
+        setError(response.data?.message || "Login failed");
         return null;
       }
     } catch (err) {
-      console.error("Login error details:", err.response || err);
-      handleAuthError(err);
+      console.error("Login error:", err.response || err);
+      setError(err.response?.data?.message || "Network error");
       return null;
     }
   };
 
   const signup = async (data) => {
     try {
-      const formData = { ...data, role: "user", is_active: 1 };
-      const response = await axios.post("/auth/signup", formData);
+      const response = await axios.post("/auth/signup", { ...data, role: "user", is_active: 1 });
 
       if (response.status === 200 && response.data?.data?.jwtToken) {
         const token = response.data.data.jwtToken;
         Cookies.set("token", token, { expires: 7 });
-        await getUser();
+        await fetchUser(token);
         navigate("/");
       } else {
-        setError("Unexpected error occurred during signup.");
+        setError(response.data?.message || "Signup failed");
       }
     } catch (err) {
-      handleAuthError(err);
+      console.error("Signup error:", err.response || err);
+      setError("Network error");
     }
   };
 
@@ -95,38 +83,22 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = Cookies.get("token");
       Cookies.remove("token");
-      Cookies.remove("email");
+      localStorage.removeItem("user"); // ✅ remove persisted user
       setUser(null);
+      navigate("/login");
 
       if (token) {
-        await axios.post("/auth/logout", null, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await axios.post("/auth/logout", null, { headers: { Authorization: `Bearer ${token}` } });
       }
-
-      navigate("/login");
     } catch (err) {
-      handleAuthError(err);
+      console.error("Logout error:", err);
+      setUser(null);
+      localStorage.removeItem("user");
     }
-  };
-
-  const handleAuthError = (err) => {
-    if (err?.response) {
-      if (err.response.status === 422) {
-        setError(err.response.data?.error || "Validation error.");
-      } else {
-        setError("An error occurred. Please try again later.");
-      }
-    } else {
-      setError("Network error. Please try again later.");
-    }
-    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, error, getUser, login, signup, logout }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={{ user, error, login, signup, logout }}>{children}</AuthContext.Provider>
   );
 };
 

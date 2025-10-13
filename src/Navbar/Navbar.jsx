@@ -7,7 +7,7 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout(); // clear auth data from context + localStorage/cookies
+    logout(); 
     navigate("/auth/login");
   };
 

@@ -1,47 +1,38 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./Pages/HomePage/HomePage";
 import Login from "./Authentication/Login";
 import Signup from "./Authentication/Signup";
 import Dashboard from "./Dashboard/Dashboard";
-// import api from "./api/axiosConfig";
-// import { useState, useEffect } from "react";
+import ProductCrud from "./Dashboard/ProductCrud";
+import { OrderControl } from "./Dashboard/OrderControl";
 import "./index.css";
+import ImageCrud from "./Dashboard/ImageCrud";
+import CategoryCrud from "./Dashboard/CategoryCrud";
 
 function App() {
-  // const [loading, setLoading] = useState(true);
-  // const [error, setError] = useState(null);
-  // const [data, setData] = useState(null);
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-  //       const response = await api.get("/test");
-  //       setData(response.data);
-  //       setError(null);
-  //     }
-  //     catch (err) {
-  //       setError(err.message);
-  //       setData(null);
-  //     }
-  //     finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   fetchData();
-  // }
-  // , []);
-  // if (loading) return <div>Loading...</div>;
-  // if (error) return <div>Error: {error}</div>;
-  // if (data) console.log(data);
-
   return (
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="*" element={<div>404 Not Found</div>} />
-      </Routes>
+    <Routes>
+      {/* Public Pages */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
 
+      {/* Dashboard Pages */}
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/product-crud" element={<ProductCrud />} />
+      <Route path="/order-control" element={<OrderControl />} />
+      <Route path="/image-crud" element={<ImageCrud />} />
+      <Route path="/category-crud" element={<CategoryCrud />} />
+
+      {/* Redirects */}
+      <Route path="/home" element={<Navigate to="/" replace />} />
+
+      {/* 404 Fallback */}
+      <Route
+        path="*"
+        element={<div className="text-center mt-20 text-2xl font-semibold">404 - Page Not Found</div>}
+      />
+    </Routes>
   );
 }
 

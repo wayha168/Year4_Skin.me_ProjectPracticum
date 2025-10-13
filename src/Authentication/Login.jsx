@@ -21,117 +21,94 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
     const userData = await login({ email, password });
     setIsLoading(false);
 
     if (userData) {
-      console.log("✅ Logged in user:", userData);
-
-      const rawRoles =
-        userData.roles ?? userData.authorities ?? userData.role ?? userData.user?.roles ?? null;
-
-      let rolesArray = [];
-
-      if (Array.isArray(rawRoles)) {
-        rolesArray = rawRoles.map((r) => (typeof r === "string" ? r : r?.authority ?? r?.role));
-      } else if (typeof rawRoles === "string") {
-        rolesArray = [rawRoles];
-      } else if (rawRoles && typeof rawRoles === "object") {
-        rolesArray = [rawRoles.authority ?? rawRoles.role ?? JSON.stringify(rawRoles)];
-      }
-
-      console.log("Normalized roles:", rolesArray);
-
+      const rolesArray = Array.isArray(userData.roles) ? userData.roles : [userData.role];
       const isAdmin = rolesArray.includes("ROLE_ADMIN") || rolesArray.includes("ADMIN");
-
-      console.log("👑 Is Admin:", isAdmin);
-
-      if (isAdmin) {
-        navigate("/dashboard");
-      } else {
-        navigate("/");
-      }
+      navigate(isAdmin ? "/dashboard" : "/");
     }
-  }
-    return (
-      <section className="min-h-screen bg-pink-100 flex items-center justify-center">
-        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-          <h1 className="text-3xl font-bold text-center text-pink-400 mb-4">Login</h1>
+    console.log("Login attempt finished.", userData);
+  };
+  return (
+    <section className="min-h-screen bg-pink-100 flex items-center justify-center">
+      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+        <h1 className="text-3xl font-bold text-center text-pink-400 mb-4">Login</h1>
 
-          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={email}
-                onChange={handleInputChange}
-                placeholder="Enter your email"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none"
-                required
-                disabled={isLoading}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <input
-                type="password"
-                name="password"
-                value={password}
-                onChange={handleInputChange}
-                placeholder="Enter your password"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none"
-                required
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="text-right">
-              <Link to="/forgot-password" className="text-sm text-pink-400">
-                Forgot Password?
-              </Link>
-            </div>
-
-            <button
-              type="submit"
-              className={`w-full py-2 mt-2 rounded-lg font-bold text-white ${
-                isLoading ? "bg-pink-200 cursor-not-allowed" : "bg-pink-400 hover:bg-pink-500"
-              }`}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              type="email"
+              name="email"
+              value={email}
+              onChange={handleInputChange}
+              placeholder="Enter your email"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none"
+              required
               disabled={isLoading}
-            >
-              {isLoading ? "Logging in..." : "Login"}
-            </button>
-          </form>
-
-          {isLoading && <Loading />}
-
-          <div className="my-4 flex items-center justify-center text-sm text-gray-500">Or continue with</div>
-
-          <div className="flex gap-2">
-            <button className="flex-1 py-2 rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2">
-              <FaFacebook /> Facebook
-            </button>
-            <button className="flex-1 py-2 rounded-lg bg-red-600 text-white flex items-center justify-center gap-2">
-              <FaGoogle /> Google
-            </button>
-            <button className="flex-1 py-2 rounded-lg bg-gray-600 text-white flex items-center justify-center gap-2">
-              <CgPhone /> Phone
-            </button>
+            />
           </div>
 
-          <p className="mt-4 text-center text-gray-700">
-            Don't have an account?{" "}
-            <Link to="/signup" className="font-bold text-pink-400 underline">
-              Sign Up
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <input
+              type="password"
+              name="password"
+              value={password}
+              onChange={handleInputChange}
+              placeholder="Enter your password"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none"
+              required
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="text-right">
+            <Link to="/forgot-password" className="text-sm text-pink-400">
+              Forgot Password?
             </Link>
-          </p>
+          </div>
+
+          <button
+            type="submit"
+            className={`w-full py-2 mt-2 rounded-lg font-bold text-white ${
+              isLoading ? "bg-pink-200 cursor-not-allowed" : "bg-pink-400 hover:bg-pink-500"
+            }`}
+            disabled={isLoading}
+          >
+            {isLoading ? "Logging in..." : "Login"}
+          </button>
+        </form>
+
+        {isLoading && <Loading />}
+
+        <div className="my-4 flex items-center justify-center text-sm text-gray-500">Or continue with</div>
+
+        <div className="flex gap-2">
+          <button className="flex-1 py-2 rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2">
+            <FaFacebook /> Facebook
+          </button>
+          <button className="flex-1 py-2 rounded-lg bg-red-600 text-white flex items-center justify-center gap-2">
+            <FaGoogle /> Google
+          </button>
+          <button className="flex-1 py-2 rounded-lg bg-gray-600 text-white flex items-center justify-center gap-2">
+            <CgPhone /> Phone
+          </button>
         </div>
-      </section>
-    );
-  };
+
+        <p className="mt-4 text-center text-gray-700">
+          Don't have an account?{" "}
+          <Link to="/signup" className="font-bold text-pink-400 underline">
+            Sign Up
+          </Link>
+        </p>
+      </div>
+    </section>
+  );
+};
 
 export default Login;
