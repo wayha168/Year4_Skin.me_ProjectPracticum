@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "../Components/Sidebar/Sidebar";
 import axios from "../api/axiosConfig";
-import useAuthContext from "../Authentication/AuthContext";
+// import useAuthContext from "../Authentication/AuthContext";
 
 export const OrderControl = () => {
-  const { user } = useAuthContext(); // get user info from context
+//   const { user } = useAuthContext(); // get user info from context
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState("");
 
