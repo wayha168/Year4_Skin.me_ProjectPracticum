@@ -1,9 +1,5 @@
-<<<<<<< HEAD
-import { Routes, Route, Navigate } from "react-router-dom";
-=======
 // src/App.jsx
-import { Routes, Route } from "react-router-dom";
->>>>>>> 5f6109f (skin-me homePage overview  Product and aboutUs)
+import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./Pages/HomePage/HomePage";
 import Login from "./Authentication/Login";
 import Signup from "./Authentication/Signup";
@@ -13,12 +9,14 @@ import { OrderControl } from "./Dashboard/OrderControl";
 import "./index.css";
 import ImageCrud from "./Dashboard/ImageCrud";
 import CategoryCrud from "./Dashboard/CategoryCrud";
+import Products from "./products/Products"; 
 
 function App() {
   return (
     <Routes>
       {/* Public Pages */}
       <Route path="/" element={<HomePage />} />
+      <Route path="/products" element={<Products />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
 

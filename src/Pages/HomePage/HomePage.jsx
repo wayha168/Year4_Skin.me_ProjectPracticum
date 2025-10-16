@@ -2,6 +2,7 @@
 
 // HomePage
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import "./HomePage.css";
 import MainImage from "../../assets/product_homepage.png";
 
@@ -24,49 +25,59 @@ import PINTEREST from "../../assets/pinterest_icon.png"
 import INSTARGRAM from "../../assets/instargram_icon.png"
 
 // to Products
-  const scrollToProducts = (e) => {
-  e.preventDefault();
 
-  const scrollToSection = () => {
-    const section = document.getElementById("products");
-    if (section) {
-      const navbarHeight = document.querySelector(".navbar-wrapper")?.offsetHeight || 0;
-      const y = section.getBoundingClientRect().top + window.scrollY - navbarHeight;
-      window.scrollTo({ top: y, behavior: "smooth" });
-    }
-  };
+// (Other imports... like Aba, Visa, etc.)
 
-  if (window.location.pathname === "/") {
-    scrollToSection();
-  } else {
-    setTimeout(scrollToSection, 500);
-  }
-};
-
-//  to About Us
-   const scrollToAboutUs = (e) => {
-  e.preventDefault();
-
-  const scrollToSection = () => {
-    const section = document.getElementById("aboutus");
-    if (section) {
-      const navbarHeight = document.querySelector(".navbar-wrapper")?.offsetHeight || 0;
-      const y = section.getBoundingClientRect().top + window.scrollY - navbarHeight;
-      window.scrollTo({ top: y, behavior: "smooth" });
-    }
-  };
-
-  if (window.location.pathname === "/") {
-    scrollToSection();
-  } else {
-    setTimeout(scrollToSection, 500);
-  }
-};
-
-
-// HomePage
 const HomePage = () => {
-  
+  const navigate = useNavigate(); // <-- ADD THIS
+
+  // When user clicks "Shop Now" or "View Product"
+ const goToProducts = (e) => {
+    e.preventDefault();
+    navigate("/products");
+  };
+
+  const scrollToSection = () => {
+    const section = document.getElementById("product");
+    if (section) {
+      const navbarHeight = document.querySelector(".navbar-wrapper")?.offsetHeight || 0;
+      const y = section.getBoundingClientRect().top + window.scrollY - navbarHeight;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  };
+
+  // ✅ If already on homepage, scroll to section
+  if (window.location.pathname === "/") {
+    scrollToSection();
+  } 
+  // ✅ Otherwise, go to Product.jsx page directly
+  else {
+    navigate("/product");
+  }
+
+  // When user clicks “About Us”
+  const scrollToAboutUs = (e) => {
+    e.preventDefault();
+
+    const scrollToSection = () => {
+      const section = document.getElementById("aboutus");
+      if (section) {
+        const navbarHeight = document.querySelector(".navbar-wrapper")?.offsetHeight || 0;
+        const y = section.getBoundingClientRect().top + window.scrollY - navbarHeight;
+        window.scrollTo({ top: y, behavior: "smooth" });
+      }
+    };
+
+    if (window.location.pathname === "/") {
+      scrollToSection();
+    } else {
+      navigate("/");
+      setTimeout(scrollToSection, 500);
+    }
+  };
+
+
+
   return (<>
   <div className="homepage_main_wrapper">
     <div className="round_purple fourth">
@@ -91,7 +102,7 @@ const HomePage = () => {
           Give you the best skincare product is our mission.        </p>
         </div>
         <div className="homepage-content">
-          <button onClick={scrollToProducts} className="shop_now">
+          <button onClick={goToProducts} className="shop_now">
             Shop Now
           </button>
         </div>
@@ -137,7 +148,7 @@ const HomePage = () => {
 
 
     {/* ProductPage */}
-    <div id="products" className="main_product_wrapper">
+    <div id="product" className="main_product_wrapper">
       <div className="line first"></div>
       
       <div className="our_products">
@@ -340,6 +351,9 @@ const HomePage = () => {
         </p>
       </div>
       </div>
+
+
+      <div className="button_and_grid_wrapper">
       <div className="products_grid with_less_margin_top">
         
       <div className="product_word_wrapper">
@@ -401,6 +415,10 @@ const HomePage = () => {
         <p className="product_price">
           Price 9.99$
         </p>
+      </div>
+      </div>
+      <div className="view_products">
+        <button to="/products" onClick={goToProducts} className="view_products_button">View Product</button>
       </div>
       </div>
 

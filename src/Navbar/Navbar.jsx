@@ -5,95 +5,30 @@ import useAuthContext from "../Authentication/AuthContext";
 import "./Navbar.css";
 
 const Navbar = () => {
-  const { user, logout } = useAuthContext();
   const navigate = useNavigate();
-  const scrollToHome = (e) => {
-  e.preventDefault();
+  const { user, logout } = useAuthContext();
 
+  const [prevScrollPos, setPrevScrollPos] = useState(window.scrollY);
+  const [visible, setVisible] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [ignoreScroll, setIgnoreScroll] = useState(false);
+  const navRef = useRef(null);
 
-  
+  // Scroll hide logic
+  useEffect(() => {
+    const handleScroll = () => {
+      if (ignoreScroll) return; // Skip during navigation
+      const currentScrollPos = window.scrollY;
+      setVisible(prevScrollPos > currentScrollPos || currentScrollPos < 10);
+      setPrevScrollPos(currentScrollPos);
+    };
 
-// Direct to HomePage
-  const scrollToSection = () => {
-    const section = document.getElementById("homepage");
-    if (section) {
-      const navbarHeight = document.querySelector(".navbar-wrapper")?.offsetHeight || 0;
-      const y = section.getBoundingClientRect().top + window.scrollY - navbarHeight;
-      window.scrollTo({ top: y, behavior: "smooth" });
-    }
-  };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [prevScrollPos, ignoreScroll]);
 
-  if (window.location.pathname === "/") {
-    scrollToSection();
-  } else {
-    navigate("/");
-    setTimeout(scrollToSection, 500);
-  }
-};
-
-
-// Direct to product Product
-  const scrollToProducts = (e) => {
-  e.preventDefault();
-
-  const scrollToSection = () => {
-    const section = document.getElementById("products");
-    if (section) {
-      const navbarHeight = document.querySelector(".navbar-wrapper")?.offsetHeight || 0;
-      const y = section.getBoundingClientRect().top + window.scrollY - navbarHeight;
-      window.scrollTo({ top: y, behavior: "smooth" });
-    }
-  };
-
-  if (window.location.pathname === "/") {
-    scrollToSection();
-  } else {
-    navigate("/");
-    setTimeout(scrollToSection, 500);
-  }
-};
-
-
-
-// Direct to AboutUs
-   const scrollToAboutUs = (e) => {
-  e.preventDefault();
-
-  const scrollToSection = () => {
-    const section = document.getElementById("aboutus");
-    if (section) {
-      const navbarHeight = document.querySelector(".navbar-wrapper")?.offsetHeight || 0;
-      const y = section.getBoundingClientRect().top + window.scrollY - navbarHeight;
-      window.scrollTo({ top: y, behavior: "smooth" });
-    }
-  };
-
-  if (window.location.pathname === "/") {
-    scrollToSection();
-  } else {
-    setTimeout(scrollToSection, 500);
-  }
-};
-
-
-
-
-const [menuOpen, setMenuOpen] = useState(false);
-  const navRef = useRef(null); // reference for nav content
-
-  const handleLogout = () => {
-<<<<<<< HEAD
-    logout(); 
-    navigate("/login");
-=======
-    logout();
-    navigate("/auth/login");
->>>>>>> 5f6109f (skin-me homePage overview  Product and aboutUs)
-  };
-
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
-  };
+  const toggleMenu = () => setMenuOpen(!menuOpen);
+  const handleLogout = () => logout();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -102,68 +37,123 @@ const [menuOpen, setMenuOpen] = useState(false);
         setMenuOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  /**
+   * Prevent navbar from hiding during navigation for smoother UX
+   */
+  const safeNavigate = (path) => {
+    setIgnoreScroll(true);
+    setVisible(true);
+    navigate(path);
+    setMenuOpen(false);
+    setTimeout(() => setIgnoreScroll(false), 500); // wait for render
+  };
+
+  /**
+   * Go to section on homepage, even if not there
+   */
+  const goToPageAndSection = (pagePath, sectionId, offsetVh = 0) => {
+    setIgnoreScroll(true);
+    setVisible(true);
+
+    const scrollToSection = () => {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        const offsetPx = (offsetVh / 100) * window.innerHeight;
+        const y = section.getBoundingClientRect().top + window.scrollY - offsetPx;
+        window.scrollTo({ top: y, behavior: "auto" });
+      }
+      setTimeout(() => setIgnoreScroll(false), 300);
+    };
+
+    if (window.location.pathname !== pagePath) {
+      navigate(pagePath);
+      setTimeout(scrollToSection, 300);
+    } else {
+      scrollToSection();
+    }
+    setMenuOpen(false);
+  };
+
   return (
-    <nav className="navbar-wrapper">
+    <nav className="navbar-wrapper" style={{ top: visible ? "0" : "-100px" }}>
       <div className="navbar-content" ref={navRef}>
-        {/* Logo Section */}
+        {/* Logo */}
         <Link
-            to="/"
-            className="brand-logo"
-            onClick={(e) => {
-              e.preventDefault();
-
-              const scrollToSection = () => {
-                const section = document.getElementById("homepage");
-                if (section) {
-                  const navbarHeight = document.querySelector(".navbar-wrapper")?.offsetHeight || 0;
-                  const y = section.getBoundingClientRect().top + window.scrollY - navbarHeight;
-                  window.scrollTo({ top: y, behavior: "smooth" });
-                }
-              };
-
-              if (window.location.pathname === "/") {
-                scrollToSection();
-              } else {
-                navigate("/");
-                setTimeout(scrollToSection, 500);
-              }
-            }}>
+          to="/"
+          className="brand-logo"
+          onClick={(e) => {
+            e.preventDefault();
+            goToPageAndSection("/", "homepage", 5);
+          }}
+        >
           <span className="brand-name">SKIN.ME</span>
           <span className="brand-tagline">@Home Of Your Care</span>
         </Link>
 
-        {/* Hamburger Icon */}
+        {/* Hamburger */}
         <div className="main-dropdown" onClick={toggleMenu}>
           <i className="fa-solid fa-bars hamburger-icon"></i>
         </div>
 
-        {/* Main Navigation */}
+        {/* Menu */}
         <div className={`nav-menu ${menuOpen ? "active" : ""}`}>
-          <Link to="/" onClick={scrollToHome} className="nav-item">Home</Link>
-          <Link onClick={scrollToProducts} to="/products" className="nav-item">
-            Products <i className="fa-solid fa-caret-down" />
+          <Link
+            to="/"
+            onClick={(e) => {
+              e.preventDefault();
+              goToPageAndSection("/", "homepage", 5);
+            }}
+            className="nav-item"
+          >
+            Home
           </Link>
-          <Link to="/about"  onClick={scrollToAboutUs} className="nav-item">About Us</Link>
+
+          <Link
+            to="/products"
+            onClick={(e) => {
+              e.preventDefault();
+              safeNavigate("/products");
+            }}
+            className="nav-item"
+          >
+            Products
+          </Link>
+
+          <Link
+            to="/"
+            onClick={(e) => {
+              e.preventDefault();
+              goToPageAndSection("/", "aboutus", 10);
+            }}
+            className="nav-item"
+          >
+            About Us
+          </Link>
         </div>
 
         {/* Auth Section */}
         <div className={`auth-menu ${menuOpen ? "active" : ""}`}>
           {user ? (
             <>
-              <Link to="/profile" className="auth-button profile-button">Profile</Link>
-              <button onClick={handleLogout} className="auth-button logout-button">Logout</button>
+              <Link to="/profile" className="auth-button profile-button">
+                Profile
+              </Link>
+              <button onClick={handleLogout} className="auth-button logout-button">
+                Logout
+              </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="auth-button login-button">Login</Link>
-              <Link to="/signup" className="auth-button signup-button">Sign Up</Link>
+              <Link to="/login" className="auth-button login-button">
+                Login
+              </Link>
+              <Link to="/signup" className="auth-button signup-button">
+                Sign Up
+              </Link>
               <div className="icons heart">
                 <i className="fa-solid fa-heart" />
               </div>
