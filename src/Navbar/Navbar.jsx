@@ -82,13 +82,8 @@ const [menuOpen, setMenuOpen] = useState(false);
   const navRef = useRef(null); // reference for nav content
 
   const handleLogout = () => {
-<<<<<<< HEAD
     logout(); 
     navigate("/login");
-=======
-    logout();
-    navigate("/auth/login");
->>>>>>> 5f6109f (skin-me homePage overview  Product and aboutUs)
   };
 
   const toggleMenu = () => {
