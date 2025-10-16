@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 import { Routes, Route, Navigate } from "react-router-dom";
+=======
+// src/App.jsx
+import { Routes, Route } from "react-router-dom";
+>>>>>>> 5f6109f (skin-me homePage overview  Product and aboutUs)
 import HomePage from "./Pages/HomePage/HomePage";
 import Login from "./Authentication/Login";
 import Signup from "./Authentication/Signup";

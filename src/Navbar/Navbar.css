@@ -1,0 +1,253 @@
+/* src/Navbar/Navbar.css */
+/* -------------------- MAIN WRAPPER -------------------- */
+.navbar-wrapper {
+   position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #FFD0ED;
+  box-shadow: 0px -2px 20px 15px rgba(0, 0, 0, 0.15);
+  padding: 0.75rem 0;
+  z-index: 9999;
+  
+}
+
+/* -------------------- CONTENT LAYOUT -------------------- */
+.navbar-content {
+  
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* -------------------- LOGO -------------------- */
+.brand-logo {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+}
+
+.brand-name {
+  margin-bottom: -15px;
+  font-size: 48px;
+  font-weight: bold;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #eb61a2; /* coral pink */
+}
+
+.brand-tagline {
+  font-size: 13px;
+  color: #000;
+  opacity: 0.8;
+}
+
+/* -------------------- NAVIGATION MENU -------------------- */
+.nav-menu {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-item {
+  color: #000;
+  opacity: 0.8;
+  font-weight: 500;
+  text-decoration: none;
+  font-size: 24px;
+}
+
+.nav-item:hover {
+  color: #000;
+  opacity: 0.6;
+}
+
+.nav-item:active {
+  opacity: 1;
+}
+
+/* -------------------- AUTH MENU -------------------- */
+.auth-menu,
+.icons {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  margin-right: 0;
+}
+
+.auth-button {
+  padding: 15px 25px;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 25px;
+  border: none;
+  cursor: pointer;
+}
+
+/* LOGIN BUTTON */
+.login-button {
+  background-color: transparent;
+  color: #eb61a2;
+  border: 2px solid #eb61a2;
+  margin-right: -5px; /* make login and signup closer */
+}
+
+.login-button:hover {
+  transition: ease-in 0.2s;
+  color: #a64371;
+  border: 2px solid #a64371;
+}
+
+.login-button:active {
+  transition: ease-in 0.01s;
+  color: #ed3b8e;
+  border: 2px solid #ed3b8e;
+}
+
+/* SIGNUP BUTTON */
+.signup-button {
+  background-color: #eb61a2;
+  color: white;
+  font-weight: 700;
+}
+
+.signup-button:hover {
+  transition: ease-in 0.2s;
+  background-color: #d0578f;
+}
+
+.signup-button:active {
+  transition: ease-in 0.01s;
+  background-color: #ed3b8e;
+}
+
+/* LOGOUT BUTTON */
+.logout-button {
+  background-color: #eb61a2;
+  color: white;
+}
+
+.logout-button:hover {
+  background-color: #d0578f;
+}
+
+/* -------------------- ICONS -------------------- */
+.icons {
+  font-size: 3rem;
+  padding: 0;
+  margin-left: -10px;
+}
+
+.heart i,
+.bag i {
+  cursor: pointer;
+}
+
+/* -------------------- MOBILE MENU -------------------- */
+.mobile-toggle {
+  display: none;
+}
+
+/* Hidden by default (only for desktop) */
+.main-dropdown {
+  display: none;
+}
+
+
+
+@media screen and (max-width: 960px) {
+  /* Hide default layout */
+  .nav-menu,
+  .auth-menu {
+    opacity: 0;
+    transition: opacity 0s ease-in;
+    pointer-events: none;
+    flex-direction: column;
+  }
+
+  /* When hamburger is active */
+  .nav-menu.active,
+  .auth-menu.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* NAV MENU */
+  .nav-menu {
+    position: absolute;
+    background-color: #ffd0ed;
+    right: 0;
+    top: 6.2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50%;
+  }
+
+  .nav-item {
+    border-bottom: #000 solid 2px;
+    width: 100%;
+    height: 4rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: 1rem;
+  }
+
+  /* AUTH MENU */
+  .auth-menu {
+      
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    right: 0;
+    width: 50%;
+    top: 21.3rem;
+    background: #ffd0ed;
+  }
+
+  .auth-menu .auth-button {
+    margin: 0.9rem 0 0.1rem 0;
+    width: 100%;
+  }
+  .auth-button{
+    padding: 1rem 0 1rem 40%;
+  }
+
+  /* ICONS INSIDE MOBILE */
+  .icons {
+    width: 95.5%;
+    border-bottom: 2px solid #000;
+    background: #ffd0ed;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    height: 3.5rem;
+  }
+
+  /* -------------------- HAMBURGER ICON -------------------- */
+  .main-dropdown {
+    display: block;
+    position: absolute;
+    top: 1rem;
+    right: 2rem;
+    font-size: 3rem;
+    cursor: pointer;
+    color: #000;
+    z-index: 9999;
+    transition: color 0.2s ease-in;
+  }
+
+  .main-dropdown:active {
+    transition: 0.01s;
+    color: #e04e4e;
+  }
+}
+@media screen and (max-width: 690px){
+  .auth-button{
+    padding-left: 36%
+  }
+}
