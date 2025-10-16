@@ -29,6 +29,10 @@ const Sidebar = () => {
           <FaChartLine /> Dashboard
         </Link>
 
+        <Link to="/category-crud" className={linkClass("/category-crud")}>
+          <FaTags /> Categories
+        </Link>
+        
         <Link to="/product-crud" className={linkClass("/product-crud")}>
           <FaBoxOpen /> Product CRUD
         </Link>
@@ -37,9 +41,6 @@ const Sidebar = () => {
           <FaImages /> Image Manager
         </Link>
 
-        <Link to="/category-crud" className={linkClass("/category-crud")}>
-          <FaTags /> Categories
-        </Link>
 
         <Link to="/order-control" className={linkClass("/order-control")}>
           <FaClipboardList /> Order History

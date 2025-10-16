@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Sidebar from "../Components/Sidebar/Sidebar";
 import axios from "../api/axiosConfig";
 import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
+import Cookies from "js-cookie";
 
 const CategoryCrud = () => {
   const [categories, setCategories] = useState([]);
@@ -25,27 +26,41 @@ const CategoryCrud = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const token = Cookies.get("token"); // get JWT from cookie
+      if (!token) throw new Error("Not authenticated");
+
       if (isEditing) {
-        await axios.put(`/categories/category/${editingId}/update`, { name });
+        await axios.put(
+          `/categories/category/${editingId}/update`,
+          { name },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         setIsEditing(false);
         setEditingId(null);
       } else {
-        await axios.post("/categories/add-category", { name });
+        await axios.post(
+          "/categories/add-category",
+          { name },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
       }
+
       setName("");
       fetchCategories();
     } catch (error) {
-      console.error("Error saving category:", error);
+      console.error("Error saving category:", error.response?.data || error.message);
     }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this category?")) return;
     try {
-      await axios.delete(`/categories/category/${id}/delete`);
+      await axios.delete(`/categories/category/${id}/delete`, {
+        headers: { Authorization: `Bearer ${Cookies.get("token")}` },
+      });
       fetchCategories();
     } catch (error) {
-      console.error("Delete failed:", error);
+      console.error("Delete failed:", error.response?.data || error.message);
     }
   };
 
