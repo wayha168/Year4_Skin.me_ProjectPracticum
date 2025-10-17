@@ -11,12 +11,9 @@ import ProfilePage from "./Pages/ProfilePage/ProfilePage";
 import { OrderControl } from "./Dashboard/OrderControl";
 import Dashboard from "./Dashboard/Dashboard";
 import ProductCrud from "./Dashboard/ProductCrud";
-import { OrderControl } from "./Dashboard/OrderControl";
 import "./index.css";
 import ImageCrud from "./Dashboard/ImageCrud";
 import CategoryCrud from "./Dashboard/CategoryCrud";
-import Products from "./Pages/Products/Products";
-import AboutUsPage from "./Pages/AboutUs/AboutUsPage";
 
 function App() {
   return (
