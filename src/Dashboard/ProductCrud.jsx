@@ -56,8 +56,15 @@ const ProductCrud = () => {
     try {
       if (!form.categoryId) return alert("Please select a category");
 
-      const payload = { ...form, category: { id: form.categoryId } };
-      delete payload.categoryId;
+      const payload = {
+        name: form.name,
+        brand: form.brand,
+        price: parseFloat(form.price),
+        productType: form.productType,
+        inventory: parseInt(form.inventory),
+        description: form.description,
+        category: { id: Number(form.categoryId) }, // ✅ fix here
+      };
 
       if (isEditing) {
         await axios.put(`/products/product/${editingId}/update`, payload, {
