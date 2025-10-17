@@ -53,6 +53,7 @@ const HomePage = () => {
   return (
     <>
       <Navbar />
+      {/* HomePage */}
       <div className="homepage_main_wrapper">
         <div className="round_purple fourth"></div>
         <div id="homepage" className="homepage-container">
@@ -99,7 +100,7 @@ const HomePage = () => {
         <div className="round_purple third"></div>
       </div>
       {/* ProductPage */}
-      <div id="product" className="main_product_wrapper">
+      <div id="product" className="main_product_wrapper m-3">
         <div className="line first"></div>
 
         <div className="our_products">

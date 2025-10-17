@@ -10,6 +10,7 @@ import "./index.css";
 import ImageCrud from "./Dashboard/ImageCrud";
 import CategoryCrud from "./Dashboard/CategoryCrud";
 import Products from "./Pages/Products/Products";
+import AboutUsPage from "./Pages/AboutUs/AboutUsPage";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
       {/* Public Pages */}
       <Route path="/" element={<HomePage />} />
       <Route path="/products" element={<Products />} />
+      <Route path="/about-us" element={<AboutUsPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
 

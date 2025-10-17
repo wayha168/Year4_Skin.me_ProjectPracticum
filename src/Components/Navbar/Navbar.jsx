@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthContext from "../../Authentication/AuthContext";
+import Loading from "../Loading/Loading";
 import "./Navbar.css";
 
 const Navbar = () => {
@@ -10,6 +11,7 @@ const Navbar = () => {
   const [prevScrollPos, setPrevScrollPos] = useState(window.scrollY);
   const [visible, setVisible] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [ignoreScroll, setIgnoreScroll] = useState(false);
   const navRef = useRef(null);
 
@@ -41,14 +43,19 @@ const Navbar = () => {
   const safeNavigate = (path) => {
     setIgnoreScroll(true);
     setVisible(true);
+    setLoading(true);
     navigate(path);
     setMenuOpen(false);
-    setTimeout(() => setIgnoreScroll(false), 500);
+    setTimeout(() => {
+      setIgnoreScroll(false);
+      setLoading(false);
+    }, 700);
   };
 
   const goToPageAndSection = (pagePath, sectionId, offsetVh = 0) => {
     setIgnoreScroll(true);
     setVisible(true);
+    setLoading(true);
 
     const scrollToSection = () => {
       const section = document.getElementById(sectionId);
@@ -57,12 +64,15 @@ const Navbar = () => {
         const y = section.getBoundingClientRect().top + window.scrollY - offsetPx;
         window.scrollTo({ top: y, behavior: "auto" });
       }
-      setTimeout(() => setIgnoreScroll(false), 300);
+      setTimeout(() => {
+        setIgnoreScroll(false);
+        setLoading(false);
+      }, 500);
     };
 
     if (window.location.pathname !== pagePath) {
       navigate(pagePath);
-      setTimeout(scrollToSection, 300);
+      setTimeout(scrollToSection, 500);
     } else {
       scrollToSection();
     }
@@ -70,6 +80,7 @@ const Navbar = () => {
   };
 
   return (
+    <>
     <nav className="navbar-wrapper" style={{ top: visible ? "0" : "-100px" }}>
       <div className="navbar-content" ref={navRef}>
         {/* Logo */}
@@ -144,17 +155,34 @@ const Navbar = () => {
               <Link to="/signup" className="auth-button signup-button">
                 Sign Up
               </Link>
-              <div className="icons heart">
+              <Link
+                to="/favorites"
+                className="icons heart"
+                onClick={(e) => {
+                  e.preventDefault();
+                  safeNavigate("/favorites");
+                }}
+              >
                 <i className="fa-solid fa-heart" />
-              </div>
-              <div className="icons bag">
+              </Link>
+
+              <Link
+                to="/cart"
+                className="icons bag"
+                onClick={(e) => {
+                  e.preventDefault();
+                  safeNavigate("/cart");
+                }}
+              >
                 <i className="fa-solid fa-bag-shopping" />
-              </div>
+              </Link>
             </>
           )}
         </div>
       </div>
     </nav>
+    {loading && <Loading />}
+  </>
   );
 };
 
