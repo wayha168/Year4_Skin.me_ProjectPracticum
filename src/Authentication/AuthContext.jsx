@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState, useContext } from "react";
-import axios from "../api/axiosConfig";
+import axiosAuth from "../api/axiosConfig"; 
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 
@@ -8,7 +8,6 @@ const AuthContext = createContext({});
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
-  // Initialize user from localStorage
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
     const savedToken = Cookies.get("token");
@@ -17,22 +16,16 @@ export const AuthProvider = ({ children }) => {
 
   const [error, setError] = useState("");
 
-  // On mount, fetch user if token exists
   useEffect(() => {
-    const token = Cookies.get("token") || localStorage.getItem("token");
+    const token = Cookies.get("token");
     if (token && !user) {
       fetchUser(token);
     }
   }, []);
 
-  // Fetch user info from backend
   const fetchUser = async (token) => {
     try {
-      // Replace with correct backend route
-      const response = await axios.get("/users/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      const response = await axiosAuth.get("/users/me"); // <-- use axiosAuth
       if (response.status === 200) {
         const userData = response.data.data;
         setUser({ ...userData, token });
@@ -48,15 +41,15 @@ export const AuthProvider = ({ children }) => {
   const login = async ({ email, password }) => {
     try {
       setError("");
-      const response = await axios.post("/auth/login", { email, password });
+      const response = await axiosAuth.post("/auth/login", { email, password });
 
       if (response.status === 200 && response.data?.data?.jwtToken) {
         const token = response.data.data.jwtToken;
         const userData = response.data.data;
 
-        setUser(userData);
+        Cookies.set("token", token, { expires: 7 });
         localStorage.setItem("user", JSON.stringify(userData));
-        Cookies.set("token", userData.token, { expires: 7 });
+        localStorage.setItem("token", token);
 
         setUser({ ...userData, token });
         return userData;
@@ -73,7 +66,7 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (data) => {
     try {
-      const response = await axios.post("/auth/signup", { ...data, role: "user", is_active: 1 });
+      const response = await axiosAuth.post("/auth/signup", { ...data, role: "user", is_active: 1 });
 
       if (response.status === 200 && response.data?.data?.jwtToken) {
         const token = response.data.data.jwtToken;
@@ -92,7 +85,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      const token = Cookies.get("token") || localStorage.getItem("token");
+      const token = Cookies.get("token");
       Cookies.remove("token");
       localStorage.removeItem("user");
       localStorage.removeItem("token");
@@ -100,7 +93,7 @@ export const AuthProvider = ({ children }) => {
       navigate("/login");
 
       if (token) {
-        await axios.post("/auth/logout", null, { headers: { Authorization: `Bearer ${token}` } });
+        await axiosAuth.post("/auth/logout"); // token automatically added by axiosAuth
       }
     } catch (err) {
       console.error("Logout error:", err);

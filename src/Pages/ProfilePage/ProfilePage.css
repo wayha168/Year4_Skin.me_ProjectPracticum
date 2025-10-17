@@ -21,13 +21,17 @@
 }
 
 /* Avatar */
-.profile-avatar img {
-    width: 130px;
-    height: 130px;
+.profile-avatar img,
+.cute-avatar {
+    width: 150px;
+    height: 150px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #4CAF50;
-    margin-bottom: 20px;
+    background-color: #ffe0f0;
+    /* soft pink background for the icon */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* User info */

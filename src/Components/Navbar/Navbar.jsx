@@ -1,4 +1,3 @@
-// src/Components/Navbar/Navbar.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthContext from "../../Authentication/AuthContext";
@@ -13,21 +12,18 @@ const Navbar = ({ alwaysVisible = false }) => {
   const [visible, setVisible] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [ignoreScroll, setIgnoreScroll] = useState(false);
   const navRef = useRef(null);
 
-  // Scroll behavior
   useEffect(() => {
     if (alwaysVisible) return;
     const handleScroll = () => {
-      if (ignoreScroll) return;
       const currentScrollPos = window.scrollY;
       setVisible(prevScrollPos > currentScrollPos || currentScrollPos < 10);
       setPrevScrollPos(currentScrollPos);
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [prevScrollPos, ignoreScroll, alwaysVisible]);
+  }, [prevScrollPos, alwaysVisible]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -43,42 +39,10 @@ const Navbar = ({ alwaysVisible = false }) => {
   const handleLogout = () => logout();
 
   const safeNavigate = (path) => {
-    setIgnoreScroll(true);
-    setVisible(true);
     setLoading(true);
     navigate(path);
     setMenuOpen(false);
-    setTimeout(() => {
-      setIgnoreScroll(false);
-      setLoading(false);
-    }, 700);
-  };
-
-  const goToPageAndSection = (pagePath, sectionId, offsetVh = 0) => {
-    setIgnoreScroll(true);
-    setVisible(true);
-    setLoading(true);
-
-    const scrollToSection = () => {
-      const section = document.getElementById(sectionId);
-      if (section) {
-        const offsetPx = (offsetVh / 100) * window.innerHeight;
-        const y = section.getBoundingClientRect().top + window.scrollY - offsetPx;
-        window.scrollTo({ top: y, behavior: "auto" });
-      }
-      setTimeout(() => {
-        setIgnoreScroll(false);
-        setLoading(false);
-      }, 500);
-    };
-
-    if (window.location.pathname !== pagePath) {
-      navigate(pagePath);
-      setTimeout(scrollToSection, 500);
-    } else {
-      scrollToSection();
-    }
-    setMenuOpen(false);
+    setTimeout(() => setLoading(false), 500);
   };
 
   return (
@@ -91,104 +55,56 @@ const Navbar = ({ alwaysVisible = false }) => {
             className="brand-logo"
             onClick={(e) => {
               e.preventDefault();
-              goToPageAndSection("/", "homepage", 5);
+              safeNavigate("/");
             }}
           >
             <span className="brand-name">SKIN.ME</span>
             <span className="brand-tagline">@Home Of Your Care</span>
           </Link>
 
-          {/* Hamburger menu toggle */}
+          {/* Hamburger menu */}
           <div className="main-dropdown" onClick={toggleMenu}>
-            <i className="fa-solid fa-bars hamburger-icon"></i>
+            <i className="fa-solid fa-bars"></i>
           </div>
 
-          {/* Nav Menu */}
+          {/* Navigation */}
           <div className={`nav-menu ${menuOpen ? "active" : ""}`}>
-            <Link
-              to="/"
-              onClick={(e) => {
-                e.preventDefault();
-                goToPageAndSection("/", "homepage", 5);
-              }}
-              className="nav-item"
-            >
+            <Link to="/" onClick={() => safeNavigate("/")} className="nav-item">
               Home
             </Link>
-
-            <Link
-              to="/products"
-              onClick={(e) => {
-                e.preventDefault();
-                safeNavigate("/products");
-              }}
-              className="nav-item"
-            >
+            <Link to="/products" onClick={() => safeNavigate("/products")} className="nav-item">
               Products
             </Link>
-
-            <Link
-              to="/about-us"
-              onClick={(e) => {
-                e.preventDefault();
-                safeNavigate("/about-us"); 
-              }}
-              className="nav-item"
-            >
+            <Link to="/about-us" onClick={() => safeNavigate("/about-us")} className="nav-item">
               About Us
             </Link>
           </div>
 
+          {/* Auth Menu */}
           <div className={`auth-menu ${menuOpen ? "active" : ""}`}>
-            {user ? (
+            <Link to="/favorites" onClick={() => safeNavigate("/favorites")} className="icons nav-icon">
+              <i className="fa-solid fa-heart" />
+            </Link>
+            <Link to="/cart" onClick={() => safeNavigate("/cart")} className="icons nav-icon">
+              <i className="fa-solid fa-bag-shopping" />
+            </Link>
+            {user && (
               <>
-                <Link
-                  to="/profile"
-                  className="icons profile"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    safeNavigate("/profile");
-                  }}
-                >
+                <Link to="/profile" onClick={() => safeNavigate("/profile")} className="icons nav-icon">
                   <i className="fa-solid fa-user" />
                 </Link>
-
-                {/* Logout Button */}
                 <button onClick={handleLogout} className="auth-button logout-button">
                   Logout
                 </button>
               </>
-            ) : (
+            )}
+            {!user && (
               <>
                 <Link to="/login" className="auth-button login-button">
                   Login
                 </Link>
                 <Link to="/signup" className="auth-button signup-button">
                   Sign Up
-                </Link>
-
-                {/* Favorites Icon */}
-                <Link
-                  to="/favorites"
-                  className="icons heart"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    safeNavigate("/favorites");
-                  }}
-                >
-                  <i className="fa-solid fa-heart" />
-                </Link>
-
-                {/* Cart Icon */}
-                <Link
-                  to="/cart"
-                  className="icons bag"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    safeNavigate("/cart");
-                  }}
-                >
-                  <i className="fa-solid fa-bag-shopping" />
                 </Link>
               </>
             )}

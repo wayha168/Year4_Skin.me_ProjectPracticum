@@ -54,7 +54,7 @@ const HomePage = () => {
     <>
       <Navbar />
       {/* HomePage */}
-      <div className="homepage_main_wrapper h-auto min-h-screen py-8 px-4 bg-gray-100">
+      <div className="homepage_main_wrapper h-auto min-h-screen relative">
         <div className="round_purple fourth"></div>
         <div id="homepage" className="homepage-container">
           <div className="round_purple first"></div>

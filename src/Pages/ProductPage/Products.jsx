@@ -19,11 +19,11 @@ const Products = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await axios.get("/products/all");
+        const res = await axios.get("/products/all", { withCredentials: true }); // <-- axios
         setProducts(res?.data?.data || []);
       } catch (err) {
         console.error("Error fetching products:", err);
-        setProducts([]); // fallback
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -31,11 +31,11 @@ const Products = () => {
 
     const fetchCategories = async () => {
       try {
-        const res = await axios.get("/categories/all-categories");
+        const res = await axios.get("/categories/all-categories"); // <-- axios
         setCategories(res?.data?.data || []);
       } catch (err) {
         console.error("Error fetching categories:", err);
-        setCategories([]); // fallback
+        setCategories([]);
       }
     };
 
@@ -64,7 +64,7 @@ const Products = () => {
 
   return (
     <>
-      <Navbar/>
+      <Navbar alwaysVisible={true} />
 
       <main className="products-section h-auto min-h-screen py-8 px-4 bg-gray-100">
         <div className="products-header py-6 px-4 flex flex-col md:flex-row md:justify-between md:items-center">
@@ -123,12 +123,7 @@ const Products = () => {
                   <h3 className="product-name">{p?.name || "No Name"}</h3>
                   <p className="product-desc">{p?.description || "No description available"}</p>
                   <p className="product-price">${p?.price ?? "N/A"}</p>
-                  <button
-                    className="add-to-cart"
-                    // eslint-disable-next-line no-constant-binary-expression
-                    disabled={p?.inventory <= 0 ?? true}
-                    onClick={() => handleAddToCart(p)}
-                  >
+                  <button className="add-to-cart" onClick={() => handleAddToCart(p)}>
                     <FaCartPlus />
                   </button>
                 </div>

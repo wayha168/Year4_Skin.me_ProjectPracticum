@@ -6,6 +6,7 @@ import Signup from "./Authentication/Signup";
 import Products from "./Pages/ProductPage/Products";
 import AboutUsPage from "./Pages/AboutUs/AboutUsPage";
 import { FavoritePage } from "./Pages/FavoritePage/FavoritePage";
+import CartPage from "./Pages/CartPage/CartPage";
 import ProfilePage from "./Pages/ProfilePage/ProfilePage";
 import { OrderControl } from "./Dashboard/OrderControl";
 import Dashboard from "./Dashboard/Dashboard";
@@ -17,14 +18,15 @@ import ScrollToTop from "./Components/ScrollToTop/ScrollToTop";
 function App() {
   return (
     <>
-        <ScrollToTop />
+      <ScrollToTop />
+      
       <Routes>
-
         {/* Public Pages */}
         <Route path="/" element={<HomePage />} />
         <Route path="/products" element={<Products />} />
         <Route path="/about-us" element={<AboutUsPage />} />
-        <Route path="/favorite" element={<FavoritePage />} />
+        <Route path="/favorites" element={<FavoritePage />} />
+        <Route path="/cart" element={<CartPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
