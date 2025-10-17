@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthContext from "../../Authentication/AuthContext";
 import Loading from "../Loading/Loading";
@@ -48,20 +48,20 @@ const Navbar = ({ alwaysVisible = false }) => {
 
   return (
     <>
-    <nav className="navbar-wrapper" style={{ top: visible ? "0" : "-100px" }}>
-      <div className="navbar-content" ref={navRef}>
-        {/* Logo */}
-        <Link
-          to="/"
-          className="brand-logo"
-          onClick={(e) => {
-            e.preventDefault();
-            goToPageAndSection("/", "homepage", 5);
-          }}
-        >
-          <span className="brand-name">SKIN.ME</span>
-          <span className="brand-tagline">@Home Of Your Care</span>
-        </Link>
+      <nav className="navbar-wrapper" style={{ top: visible || alwaysVisible ? "0" : "-100px" }}>
+        <div className="navbar-content" ref={navRef}>
+          {/* Logo */}
+          <Link
+            to="/"
+            className="brand-logo"
+            onClick={(e) => {
+              e.preventDefault();
+              safeNavigate("/");
+            }}
+          >
+            <span className="brand-name">SKIN.ME</span>
+            <span className="brand-tagline">@Home Of Your Care</span>
+          </Link>
 
           {/* Hamburger menu */}
           <div className="main-dropdown" onClick={toggleMenu}>
@@ -81,53 +81,39 @@ const Navbar = ({ alwaysVisible = false }) => {
             </Link>
           </div>
 
-        {/* Auth Section */}
-        <div className={`auth-menu ${menuOpen ? "active" : ""}`}>
-          {user ? (
-            <>
-              <Link to="/profile" className="auth-button profile-button">
-                Profile
-              </Link>
-              <button onClick={handleLogout} className="auth-button logout-button">
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" className="auth-button login-button">
-                Login
-              </Link>
-              <Link to="/signup" className="auth-button signup-button">
-                Sign Up
-              </Link>
-              <Link
-                to="/favorites"
-                className="icons heart"
-                onClick={(e) => {
-                  e.preventDefault();
-                  safeNavigate("/favorites");
-                }}
-              >
-                <i className="fa-solid fa-heart" />
-              </Link>
-
-              <Link
-                to="/cart"
-                className="icons bag"
-                onClick={(e) => {
-                  e.preventDefault();
-                  safeNavigate("/cart");
-                }}
-              >
-                <i className="fa-solid fa-bag-shopping" />
-              </Link>
-            </>
-          )}
+          {/* Auth Menu */}
+          <div className={`auth-menu ${menuOpen ? "active" : ""}`}>
+            <Link to="/favorites" onClick={() => safeNavigate("/favorites")} className="icons nav-icon">
+              <i className="fa-solid fa-heart" />
+            </Link>
+            <Link to="/cart" onClick={() => safeNavigate("/cart")} className="icons nav-icon">
+              <i className="fa-solid fa-bag-shopping" />
+            </Link>
+            {user && (
+              <>
+                <Link to="/profile" onClick={() => safeNavigate("/profile")} className="icons nav-icon">
+                  <i className="fa-solid fa-user" />
+                </Link>
+                <button onClick={handleLogout} className="auth-button logout-button">
+                  Logout
+                </button>
+              </>
+            )}
+            {!user && (
+              <>
+                <Link to="/login" className="auth-button login-button">
+                  Login
+                </Link>
+                <Link to="/signup" className="auth-button signup-button">
+                  Sign Up
+                </Link>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
-    {loading && <Loading />}
-  </>
+      </nav>
+      {loading && <Loading />}
+    </>
   );
 };
 
