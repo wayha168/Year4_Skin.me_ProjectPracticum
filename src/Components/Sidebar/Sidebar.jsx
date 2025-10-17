@@ -1,4 +1,3 @@
-import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   FaChartLine,
@@ -14,7 +13,7 @@ const Sidebar = () => {
   const { pathname } = useLocation();
 
   const linkClass = (path) =>
-    `flex items-center gap-3 p-2 rounded-lg transition-all ${
+    `flex gap-3 p-2 rounded-lg transition-all ${
       pathname === path ? "bg-blue-200 text-blue-700 font-semibold" : "hover:bg-blue-100 text-gray-700"
     }`;
 
@@ -24,7 +23,7 @@ const Sidebar = () => {
       <h2 className="text-2xl font-bold text-blue-600 mb-8 tracking-wide">Skin.Me Admin</h2>
 
       {/* Navigation */}
-      <nav className="flex flex-col gap-2">
+      <nav className="flex flex-col gap-4 py-12">
         <Link to="/dashboard" className={linkClass("/dashboard")}>
           <FaChartLine /> Dashboard
         </Link>
@@ -32,7 +31,7 @@ const Sidebar = () => {
         <Link to="/category-crud" className={linkClass("/category-crud")}>
           <FaTags /> Categories
         </Link>
-        
+
         <Link to="/product-crud" className={linkClass("/product-crud")}>
           <FaBoxOpen /> Product CRUD
         </Link>
@@ -41,17 +40,17 @@ const Sidebar = () => {
           <FaImages /> Image Manager
         </Link>
 
-
         <Link to="/order-control" className={linkClass("/order-control")}>
           <FaClipboardList /> Order History
         </Link>
 
-        {/* <Link to="/sales-report" className={linkClass("/sales-report")}>
+        <Link to="/sales-report" className={linkClass("/sales-report")}>
           <FaDollarSign /> Sales
-        </Link> */}
+        </Link>
+        <Link to="/" className={linkClass("/sales-report")}>
+          <FaDollarSign /> Homepage
+        </Link>
       </nav>
-
-      {/* Logout */}
       <div className="mt-auto border-t border-gray-200 pt-4">
         <button className="flex items-center gap-3 p-2 text-red-500 hover:bg-red-100 rounded-lg w-full transition">
           <FaSignOutAlt /> Logout

@@ -1,7 +1,6 @@
-// src/Navbar/Navbar.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import useAuthContext from "../Authentication/AuthContext";
+import useAuthContext from "../../Authentication/AuthContext";
 import "./Navbar.css";
 
 const Navbar = () => {
@@ -14,10 +13,9 @@ const Navbar = () => {
   const [ignoreScroll, setIgnoreScroll] = useState(false);
   const navRef = useRef(null);
 
-  // Scroll hide logic
   useEffect(() => {
     const handleScroll = () => {
-      if (ignoreScroll) return; // Skip during navigation
+      if (ignoreScroll) return;
       const currentScrollPos = window.scrollY;
       setVisible(prevScrollPos > currentScrollPos || currentScrollPos < 10);
       setPrevScrollPos(currentScrollPos);
@@ -30,7 +28,6 @@ const Navbar = () => {
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const handleLogout = () => logout();
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (navRef.current && !navRef.current.contains(event.target)) {
@@ -41,20 +38,14 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  /**
-   * Prevent navbar from hiding during navigation for smoother UX
-   */
   const safeNavigate = (path) => {
     setIgnoreScroll(true);
     setVisible(true);
     navigate(path);
     setMenuOpen(false);
-    setTimeout(() => setIgnoreScroll(false), 500); // wait for render
+    setTimeout(() => setIgnoreScroll(false), 500);
   };
 
-  /**
-   * Go to section on homepage, even if not there
-   */
   const goToPageAndSection = (pagePath, sectionId, offsetVh = 0) => {
     setIgnoreScroll(true);
     setVisible(true);
@@ -94,7 +85,6 @@ const Navbar = () => {
           <span className="brand-tagline">@Home Of Your Care</span>
         </Link>
 
-        {/* Hamburger */}
         <div className="main-dropdown" onClick={toggleMenu}>
           <i className="fa-solid fa-bars hamburger-icon"></i>
         </div>

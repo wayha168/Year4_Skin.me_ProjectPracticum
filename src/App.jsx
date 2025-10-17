@@ -9,7 +9,7 @@ import { OrderControl } from "./Dashboard/OrderControl";
 import "./index.css";
 import ImageCrud from "./Dashboard/ImageCrud";
 import CategoryCrud from "./Dashboard/CategoryCrud";
-import Products from "./products/Products"; 
+import Products from "./Pages/Products/Products";
 
 function App() {
   return (
