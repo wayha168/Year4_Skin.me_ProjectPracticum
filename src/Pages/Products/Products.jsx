@@ -3,6 +3,7 @@ import "./Products.css";
 import ThirdImage from "../../assets/third_image.png";
 import Navbar from "../../Components/Navbar/Navbar";
 import Footer from "../../Components/Footer/Footer";
+import OneToTen from "../../Components/oneToTen/OneToTen";
 
 const mockProducts = [
   { id: 1, title: "Skin Care", desc: "Protect your skin from the sun", price: 9.99 },
@@ -50,7 +51,7 @@ const Products = () => {
           ))}
         </div>
       </section>
-
+      <OneToTen/>
       <Footer />
     </>
   );

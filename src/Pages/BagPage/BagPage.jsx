@@ -1,6 +1,7 @@
-// src/Pages/FavoritePage/FavoritePage.jsx
-import React from 'react'
-import "./FavoritePage.css"
+// src/Pages/BagPage/BagPage.jsx
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import "./BagPage.css";
 import ThirdImage from "../../assets/third_image.png";
 import Navbar from "../../Components/Navbar/Navbar";
 import Footer from "../../Components/Footer/Footer";
@@ -15,13 +16,21 @@ const mockProducts = [
   { id: 7, title: "Night Cream", desc: "Restores your skin overnight", price: 17.49 },
   { id: 8, title: "Aloe Vera Gel", desc: "Soothes and cools irritation", price: 7.99 },
 ];
-export const FavoritePage = () => {
-  return (<>
-  <Navbar />
+
+function BagPage() {
+  const navigate = useNavigate();
+
+  const handleCheckOut = () => {
+    navigate("/check_out"); // redirect to check_out page
+  };
+
+  return (
+    <>
+      <Navbar />
 
       <section className="products-section">
         <div className="products-favorite">
-          <h1 className="favorite-title">My Favorite</h1>
+          <h1 className="favorite-title">My Bag</h1>
         </div>
 
         <div className="products-grid">
@@ -35,8 +44,14 @@ export const FavoritePage = () => {
                 <p className="product-desc">{product.desc}</p>
                 <p className="product-price">${product.price.toFixed(2)}</p>
                 <div className="add_to_card_and_remove">
-                <button className="add-to-cart">Add to Cart</button>
-                <p className="remove_favorite">remove</p>
+                  <button 
+                    id="checkOut" 
+                    className="add-to-cart" 
+                    onClick={handleCheckOut}
+                  >
+                    Check Out
+                  </button>
+                  <p className="remove_favorite">remove</p>
                 </div>
               </div>
             </div>
@@ -45,6 +60,7 @@ export const FavoritePage = () => {
       </section>
       <Footer />
     </>
-    
-  )
+  );
 }
+
+export default BagPage;

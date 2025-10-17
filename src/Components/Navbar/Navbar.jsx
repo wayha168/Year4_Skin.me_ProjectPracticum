@@ -1,3 +1,4 @@
+// src/Components/Navbar/Navbar.js
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthContext from "../../Authentication/AuthContext";
@@ -78,10 +79,12 @@ const Navbar = () => {
     }
     setMenuOpen(false);
   };
+  
 
   return (
     <>
     <nav className="navbar-wrapper" style={{ top: visible ? "0" : "-100px" }}>
+      
       <div className="navbar-content" ref={navRef}>
         {/* Logo */}
         <Link
@@ -156,22 +159,22 @@ const Navbar = () => {
                 Sign Up
               </Link>
               <Link
-                to="/favorites"
+                to="/favorite"
                 className="icons heart"
                 onClick={(e) => {
                   e.preventDefault();
-                  safeNavigate("/favorites");
+                  safeNavigate("/favorite");
                 }}
               >
                 <i className="fa-solid fa-heart" />
               </Link>
 
               <Link
-                to="/cart"
+                to="/bag_page"
                 className="icons bag"
                 onClick={(e) => {
                   e.preventDefault();
-                  safeNavigate("/cart");
+                  safeNavigate("/bag_page");
                 }}
               >
                 <i className="fa-solid fa-bag-shopping" />

@@ -1,9 +1,9 @@
-// src/Pages/FavoritePage/FavoritePage.jsx
-import React from 'react'
-import "./FavoritePage.css"
-import ThirdImage from "../../assets/third_image.png";
-import Navbar from "../../Components/Navbar/Navbar";
-import Footer from "../../Components/Footer/Footer";
+// src/Pages/Products/Products.jsx
+import ThirdImage from "../../../assets/third_image.png";
+import Navbar from "../../../Components/Navbar/Navbar";
+import Footer from "../../../Components/Footer/Footer";
+import OneToTen from "../../../Components/oneToTen/OneToTen";
+import "./PageEight.css"
 
 const mockProducts = [
   { id: 1, title: "Skin Care", desc: "Protect your skin from the sun", price: 9.99 },
@@ -15,13 +15,24 @@ const mockProducts = [
   { id: 7, title: "Night Cream", desc: "Restores your skin overnight", price: 17.49 },
   { id: 8, title: "Aloe Vera Gel", desc: "Soothes and cools irritation", price: 7.99 },
 ];
-export const FavoritePage = () => {
-  return (<>
-  <Navbar />
+
+const PageEight = () => {
+  return (
+    <>
+      <Navbar />
 
       <section className="products-section">
-        <div className="products-favorite">
-          <h1 className="favorite-title">My Favorite</h1>
+        <div className="products-header">
+          <h1 className="product-title">Our Products</h1>
+
+          <div className="sort-dropdown">
+            <label htmlFor="sortSelect">Sort By:</label>
+            <select id="sortSelect" className="sort-select">
+              <option>Default</option>
+              <option>Price: Low to High</option>
+              <option>Price: High to Low</option>
+            </select>
+          </div>
         </div>
 
         <div className="products-grid">
@@ -34,17 +45,16 @@ export const FavoritePage = () => {
                 <h3 className="product-name">{product.title}</h3>
                 <p className="product-desc">{product.desc}</p>
                 <p className="product-price">${product.price.toFixed(2)}</p>
-                <div className="add_to_card_and_remove">
                 <button className="add-to-cart">Add to Cart</button>
-                <p className="remove_favorite">remove</p>
-                </div>
               </div>
             </div>
           ))}
         </div>
       </section>
+      <OneToTen/>
       <Footer />
     </>
-    
-  )
-}
+  );
+};
+
+export default PageEight;
