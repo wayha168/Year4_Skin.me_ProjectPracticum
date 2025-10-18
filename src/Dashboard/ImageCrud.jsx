@@ -90,11 +90,14 @@ const ImageCrud = () => {
         <h1 className="text-3xl font-semibold mb-6 text-gray-800">Image Management</h1>
 
         {/* Upload Form */}
-        <form onSubmit={handleUpload} className="bg-white p-6 rounded-2xl shadow mb-10 grid gap-4">
+        <form
+          onSubmit={handleUpload}
+          className="bg-white p-6 rounded-2xl shadow-md mb-10 flex flex-col md:flex-row gap-4 items-center"
+        >
           <select
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
-            className="border p-2 rounded-lg w-full"
+            className="border p-3 rounded-lg w-full md:w-1/3"
             required
           >
             <option value="">Select Product</option>
@@ -109,12 +112,12 @@ const ImageCrud = () => {
             type="file"
             multiple
             onChange={(e) => setFiles(e.target.files)}
-            className="border p-2 rounded-lg"
+            className="border p-3 rounded-lg w-full md:w-1/3"
           />
 
           <button
             type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center gap-2 justify-center md:w-1/3"
           >
             <FaPlus /> Upload Images
           </button>
@@ -124,17 +127,17 @@ const ImageCrud = () => {
         {Object.entries(groupedImages).map(([productName, imgs]) => (
           <div key={productName} className="mb-8">
             <h2 className="text-xl font-semibold mb-4">{productName}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {imgs.map((img) => (
-                <div key={img.imageId} className="border rounded p-2 relative">
+                <div key={img.imageId} className="border rounded-lg p-2 relative hover:shadow-lg transition">
                   <img
                     src={`https://backend.skinme.store${img.downloadUrl}`}
                     alt={img.fileName}
-                    className="w-full h-32 object-cover rounded"
+                    className="w-full h-32 object-cover rounded-lg"
                   />
                   <button
                     onClick={() => handleDelete(img.imageId)}
-                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded hover:bg-red-600"
+                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
                   >
                     <FaTrash />
                   </button>
@@ -143,6 +146,8 @@ const ImageCrud = () => {
             </div>
           </div>
         ))}
+
+        {images.length === 0 && <p className="text-center text-gray-500 mt-10">No images uploaded yet.</p>}
       </main>
     </div>
   );
