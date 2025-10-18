@@ -14,6 +14,11 @@ import ProductCrud from "./Dashboard/ProductCrud";
 import ImageCrud from "./Dashboard/ImageCrud";
 import CategoryCrud from "./Dashboard/CategoryCrud";
 import ScrollToTop from "./Components/ScrollToTop/ScrollToTop";
+import CheckOutPage from "./Pages/CheckOutPage/CheckOutPage";
+import BagPage from "./Pages/BagPage/BagPage";
+
+
+
 
 function App() {
   return (
@@ -30,6 +35,14 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+
+
+        {/* Bag Page */}
+        <Route path="/bag_page" element={<BagPage />} />
+        {/* Check Out Page */}
+        <Route path="/check_out" element={<CheckOutPage />} />
+        
+
 
         {/* Dashboard Pages */}
         <Route path="/dashboard" element={<Dashboard />} />

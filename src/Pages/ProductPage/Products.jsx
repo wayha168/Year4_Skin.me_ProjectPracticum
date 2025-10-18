@@ -1,4 +1,5 @@
 // src/Pages/Products/Products.jsx
+import { useNavigate } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import axios from "../../api/axiosConfig";
 import Navbar from "../../Components/Navbar/Navbar";
@@ -15,6 +16,7 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const { user } = useAuthContext();
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -47,6 +49,10 @@ const Products = () => {
     if (!user) return alert("Please log in to add to cart");
     if (!product?.name) return alert("Invalid product");
     alert(`Added ${product.name} to cart`);
+  };
+
+  const handleImageClick = () => {
+    navigate("/check_out"); // redirect when clicking product image
   };
 
   const handleFavorite = (product) => {
@@ -113,6 +119,8 @@ const Products = () => {
                     }
                     alt={p?.name || "Product Image"}
                     className="product-img"
+                    onClick={handleImageClick}
+
                   />
                   <button className="favorite-btn" onClick={() => handleFavorite(p)}>
                     <FaHeart />

@@ -15,6 +15,11 @@ import ThirdImage from "../../assets/third_image.png";
 const HomePage = () => {
   const navigate = useNavigate();
 
+    const goToCheckout = (e) => {
+    e.preventDefault();
+    navigate("/check_out");
+  };
+
     //   const goToFavorite = (e) => {
     //   e.preventDefault();
     //   navigate("/favorite"); // redirect to FavoritePage
@@ -92,7 +97,7 @@ const HomePage = () => {
       </div>
     )}
       {bagAdded && (
-      <div className="bag-alert">
+      <div className="bag_alert">
         Added To Your Bag
       </div>
     )}
@@ -157,7 +162,7 @@ const HomePage = () => {
                 <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
                 <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
               </div>
-              <img className="first_product_image" src={ThirdImage} />
+              <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
             </div>
             <p className="product_skincare">Skin Care</p>
             <p className="product_use_to_protect">Use to protet your skin from the sun</p>
@@ -170,7 +175,7 @@ const HomePage = () => {
             <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
                 <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
           </div>
-              <img className="first_product_image" src={ThirdImage} />
+              <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
             </div>
             <p className="product_skincare">Skin Care</p>
             <p className="product_use_to_protect">Use to protet your skin from the sun</p>
@@ -183,7 +188,7 @@ const HomePage = () => {
             <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
                 <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
           </div>
-              <img className="first_product_image" src={ThirdImage} />
+              <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
             </div>
             <p className="product_skincare">Skin Care</p>
             <p className="product_use_to_protect">Use to protet your skin from the sun</p>
@@ -196,61 +201,7 @@ const HomePage = () => {
             <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
                 <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
           </div>
-              <img className="first_product_image" src={ThirdImage} />
-            </div>
-            <p className="product_skincare">Skin Care</p>
-            <p className="product_use_to_protect">Use to protet your skin from the sun</p>
-            <p className="product_price">Price 9.99$</p>
-          </div>
-        </div>
-
-        <div className="products_grid with_less_margin_top">
-          <div className="product_word_wrapper">
-            <div className="product_image_container">
-               <div className="icons_on_image_wrapper">
-            <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
-                <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
-          </div>
-              <img className="first_product_image" src={ThirdImage} />
-            </div>
-            <p className="product_skincare">Skin Care</p>
-            <p className="product_use_to_protect">Use to protet your skin from the sun</p>
-            <p className="product_price">Price 9.99$</p>
-          </div>
-
-          <div className="product_word_wrapper">
-            <div className="product_image_container">
-               <div className="icons_on_image_wrapper">
-            <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
-                <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
-          </div>
-              <img className="first_product_image" src={ThirdImage} />
-            </div>
-            <p className="product_skincare">Skin Care</p>
-            <p className="product_use_to_protect">Use to protet your skin from the sun</p>
-            <p className="product_price">Price 9.99$</p>
-          </div>
-
-          <div className="product_word_wrapper">
-            <div className="product_image_container">
-               <div className="icons_on_image_wrapper">
-            <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
-                <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
-          </div>
-              <img className="first_product_image" src={ThirdImage} />
-            </div>
-            <p className="product_skincare">Skin Care</p>
-            <p className="product_use_to_protect">Use to protet your skin from the sun</p>
-            <p className="product_price">Price 9.99$</p>
-          </div>
-
-          <div className="product_word_wrapper">
-            <div className="product_image_container">
-               <div className="icons_on_image_wrapper">
-            <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
-                <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
-          </div>
-              <img className="first_product_image" src={ThirdImage} />
+              <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
             </div>
             <p className="product_skincare">Skin Care</p>
             <p className="product_use_to_protect">Use to protet your skin from the sun</p>
@@ -265,7 +216,7 @@ const HomePage = () => {
             <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
                 <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
           </div>
-              <img className="first_product_image" src={ThirdImage} />
+              <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
             </div>
             <p className="product_skincare">Skin Care</p>
             <p className="product_use_to_protect">Use to protet your skin from the sun</p>
@@ -278,7 +229,7 @@ const HomePage = () => {
             <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
                 <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
           </div>
-              <img className="first_product_image" src={ThirdImage} />
+              <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
             </div>
             <p className="product_skincare">Skin Care</p>
             <p className="product_use_to_protect">Use to protet your skin from the sun</p>
@@ -291,7 +242,7 @@ const HomePage = () => {
             <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
                 <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
           </div>
-              <img className="first_product_image" src={ThirdImage} />
+              <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
             </div>
             <p className="product_skincare">Skin Care</p>
             <p className="product_use_to_protect">Use to protet your skin from the sun</p>
@@ -304,7 +255,61 @@ const HomePage = () => {
             <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
                 <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
           </div>
-              <img className="first_product_image" src={ThirdImage} />
+              <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
+            </div>
+            <p className="product_skincare">Skin Care</p>
+            <p className="product_use_to_protect">Use to protet your skin from the sun</p>
+            <p className="product_price">Price 9.99$</p>
+          </div>
+        </div>
+
+        <div className="products_grid with_less_margin_top">
+          <div className="product_word_wrapper">
+            <div className="product_image_container">
+               <div className="icons_on_image_wrapper">
+            <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
+                <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
+          </div>
+              <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
+            </div>
+            <p className="product_skincare">Skin Care</p>
+            <p className="product_use_to_protect">Use to protet your skin from the sun</p>
+            <p className="product_price">Price 9.99$</p>
+          </div>
+
+          <div className="product_word_wrapper">
+            <div className="product_image_container">
+               <div className="icons_on_image_wrapper">
+            <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
+                <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
+          </div>
+              <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
+            </div>
+            <p className="product_skincare">Skin Care</p>
+            <p className="product_use_to_protect">Use to protet your skin from the sun</p>
+            <p className="product_price">Price 9.99$</p>
+          </div>
+
+          <div className="product_word_wrapper">
+            <div className="product_image_container">
+               <div className="icons_on_image_wrapper">
+            <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
+                <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
+          </div>
+              <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
+            </div>
+            <p className="product_skincare">Skin Care</p>
+            <p className="product_use_to_protect">Use to protet your skin from the sun</p>
+            <p className="product_price">Price 9.99$</p>
+          </div>
+
+          <div className="product_word_wrapper">
+            <div className="product_image_container">
+               <div className="icons_on_image_wrapper">
+            <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
+                <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
+          </div>
+              <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
             </div>
             <p className="product_skincare">Skin Care</p>
             <p className="product_use_to_protect">Use to protet your skin from the sun</p>
@@ -320,7 +325,7 @@ const HomePage = () => {
             <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
                 <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
           </div>
-                <img className="first_product_image" src={ThirdImage} />
+                <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
               </div>
               <p className="product_skincare">Skin Care</p>
               <p className="product_use_to_protect">Use to protet your skin from the sun</p>
@@ -333,7 +338,7 @@ const HomePage = () => {
             <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
                 <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
           </div>
-                <img className="first_product_image" src={ThirdImage} />
+                <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
               </div>
               <p className="product_skincare">Skin Care</p>
               <p className="product_use_to_protect">Use to protet your skin from the sun</p>
@@ -346,7 +351,7 @@ const HomePage = () => {
             <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
                 <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
           </div>
-                <img className="first_product_image" src={ThirdImage} />
+                <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
               </div>
               <p className="product_skincare">Skin Care</p>
               <p className="product_use_to_protect">Use to protet your skin from the sun</p>
@@ -359,7 +364,7 @@ const HomePage = () => {
             <i  onClick={handleFavoriteClick} className="fa-solid fa-heart icons_on_image"/>
                 <i onClick={handleBagClick} className="fa-solid fa-bag-shopping icons_on_image" />
           </div>
-                <img className="first_product_image" src={ThirdImage} />
+                <img onClick={goToCheckout} className="first_product_image" src={ThirdImage} />
               </div>
               <p className="product_skincare">Skin Care</p>
               <p className="product_use_to_protect">Use to protet your skin from the sun</p>

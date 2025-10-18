@@ -68,3 +68,27 @@
     width: 30rem;
     font-size: 1.8rem;
 }
+.plus_minus.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.buy-popup {
+
+  position: fixed;
+  top: 120px;
+  right: 30px;
+  background-color: #ff0011;
+  color: white;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 10px;
+  z-index: 9999;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  animation: fadeInOut 3s ease;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}

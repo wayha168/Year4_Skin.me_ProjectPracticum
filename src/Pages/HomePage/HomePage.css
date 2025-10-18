@@ -58,7 +58,7 @@
   font-weight: 500;
   padding: 20px 70px;
   background: #eb61a2;
-  border-radius:40px;
+  border-radius: 40px;
 }
 .shop_now:hover {
   transition: 0.03s;
@@ -289,9 +289,9 @@
   transition: 0.1s;
 }
 .first_product_image:hover {
-  transform:  scale(1.06);
+  transform: scale(1.06);
 }
-.first_product_image:active{
+.first_product_image:active {
   transition: 0.05s;
   opacity: 0.6;
 }
@@ -606,7 +606,7 @@
     padding-bottom: 8rem;
   }
 }
-.button_and_grid_wrapper{
+.button_and_grid_wrapper {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -614,26 +614,25 @@
   gap: 10rem;
   margin-bottom: -3rem;
 }
-.view_products_button{
+.view_products_button {
   padding: 1.3rem 4rem;
   border-radius: 40px;
   color: #fff;
   font-size: 30px;
   font-family: Arial, Helvetica, sans-serif;
   font-weight: 400;
-  background: #EB61A2;
+  background: #eb61a2;
 }
-.view_products_button:hover{
+.view_products_button:hover {
   transition: 0.3s;
   background: #c8538a;
-  
 }
-.view_products_button:active{
+.view_products_button:active {
   transition: 0.03s;
   background: #e33486;
 }
 /* new Icons on image */
-.icons_on_image_wrapper{
+.icons_on_image_wrapper {
   display: flex;
   width: 7rem;
   flex-direction: column;
@@ -643,19 +642,17 @@
   gap: 9.6rem;
   z-index: 99990;
   opacity: 0.6;
-
 }
-.icons_on_image{
+.icons_on_image {
   font-size: 2.1rem;
   margin: 0rem -0.6rem;
   cursor: pointer;
   color: white;
 }
-.icons_on_image:active::before{
+.icons_on_image:active::before {
   color: black;
 }
-.icons_on_image::after{
-  
+.icons_on_image::after {
   color: rgb(54, 54, 54);
 }
 .product_image_container > .icons_on_image_wrapper > .icons_on_image {
@@ -663,50 +660,57 @@
   transition: opacity 0.3s ease; /* smooth fade */
 }
 
-.product_image_container:hover > .icons_on_image_wrapper > .icons_on_image{
+.product_image_container:hover > .icons_on_image_wrapper > .icons_on_image {
   opacity: 1;
-} 
+}
 .favorite-alert {
   position: fixed;
   top: 80px;
   right: 30px;
-  background-color: #ff6fa5;
+  background-color: #ff0011;
   color: white;
   font-weight: 600;
   padding: 10px 20px;
   border-radius: 10px;
   z-index: 9999;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  animation: fadeInOut 4s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  animation: fadeInOut 6s ease;
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 1;}
-  
-  100% { opacity: 0;  }
+  0% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
-
-
-
 /* Add to bag and favorite */
-.bag-alert {
+.bag_alert {
   position: fixed;
   top: 80px;
   right: 30px;
-  background-color: #ff6fa5;
+  background-color: #ff0011;
   color: white;
   font-weight: 600;
   padding: 10px 20px;
   border-radius: 10px;
   z-index: 9999;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  animation: fadeInOut 4s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  animation: fadeInOut 6s ease;
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 1;}
-  
-  80%{opacity: 0.3;}
-  
-  100% { opacity: 0;  }
+  0% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }

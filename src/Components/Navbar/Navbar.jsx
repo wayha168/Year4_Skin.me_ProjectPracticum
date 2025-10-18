@@ -83,10 +83,10 @@ const Navbar = ({ alwaysVisible = false }) => {
 
           {/* Auth Menu */}
           <div className={`auth-menu ${menuOpen ? "active" : ""}`}>
-            <Link to="/favorites" onClick={() => safeNavigate("/favorites")} className="icons nav-icon">
+            <Link to="/favorites" onClick={() => safeNavigate("/favorites")} className="icons nav-icon favorite">
               <i className="fa-solid fa-heart" />
             </Link>
-            <Link to="/cart" onClick={() => safeNavigate("/cart")} className="icons nav-icon">
+            <Link to="/bag_page" onClick={() => safeNavigate("/bag_page")} className="icons nav-icon">
               <i className="fa-solid fa-bag-shopping" />
             </Link>
             {user && (

@@ -1,5 +1,5 @@
 // src/Pages/BagPage/BagPage.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import "./BagPage.css";
 import ThirdImage from "../../assets/third_image.png";
@@ -19,14 +19,27 @@ const mockProducts = [
 
 function BagPage() {
   const navigate = useNavigate();
+  const [removedFromBag, setRemovedFromBag] = useState(false);
 
   const handleCheckOut = () => {
     navigate("/check_out"); // redirect to check_out page
   };
 
+  const handleRemoveBag = (e) => {
+    e.preventDefault();
+    setRemovedFromBag(true);
+    setTimeout(() => setRemovedFromBag(false), 2000);
+  };
+  const imageBagClick = () => {
+    navigate("/check_out");
+  };
+
   return (
     <>
       <Navbar />
+
+      {/* ✅ Popup Alert */}
+      {removedFromBag && <div className="remove_bag_alert">Removed From Bag</div>}
 
       <section className="products-section">
         <div className="products-favorite">
@@ -37,27 +50,35 @@ function BagPage() {
           {mockProducts.map((product) => (
             <div className="product-card" key={product.id}>
               <div className="product-img-container">
-                <img src={ThirdImage} alt={product.title} className="product-img" />
+                <img onClick={imageBagClick} id="image_bag"  src={ThirdImage} alt={product.title} className="product-img" />
               </div>
               <div className="product-info">
                 <h3 className="product-name">{product.title}</h3>
                 <p className="product-desc">{product.desc}</p>
                 <p className="product-price">${product.price.toFixed(2)}</p>
+
                 <div className="add_to_card_and_remove">
-                  <button 
-                    id="checkOut" 
-                    className="add-to-cart" 
+                  <button
+                    id="checkOut"
+                    className="add-to-cart"
                     onClick={handleCheckOut}
                   >
                     Check Out
                   </button>
-                  <p className="remove_favorite">remove</p>
+                  <p
+                    id="remove_bag"
+                    className="remove_favorite"
+                    onClick={handleRemoveBag}
+                  >
+                    remove
+                  </p>
                 </div>
               </div>
             </div>
           ))}
         </div>
       </section>
+
       <Footer />
     </>
   );
