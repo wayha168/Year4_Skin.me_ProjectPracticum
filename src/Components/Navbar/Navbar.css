@@ -75,7 +75,6 @@
 }
 
 .auth-button {
-  padding: 15px 25px;
   border-radius: 9999px;
   font-weight: 600;
   font-size: 25px;
@@ -84,30 +83,36 @@
 }
 
 /* LOGIN BUTTON */
-.login-button {
-  background-color: transparent;
-  color: #eb61a2;
-  border: 2px solid #eb61a2;
-  margin-right: -5px;
-  /* make login and signup closer */
-}
 
-.login-button:hover {
+.auth-button.login-button{
+    padding: 1rem 2rem;
+    text-align: center;
+    background: transparent;
+    border-radius:40px ;
+    color: #ed3b8e;
+    background: transparent;
+    border: 2px solid #ed3b8e;
+}
+.auth-button.login-button:hover {
   transition: ease-in 0.2s;
-  color: #a64371;
-  border: 2px solid #a64371;
+  color: #e5e5e5;
+  
 }
 
-.login-button:active {
+.auth-button.login-button:active {
   transition: ease-in 0.01s;
   color: #ed3b8e;
-  border: 2px solid #ed3b8e;
+  border: 2px solid #ed1278;
 }
 
+
 /* SIGNUP BUTTON */
-.signup-button {
+.auth-button.signup-button {
+  margin-top: 6px;
   background-color: #eb61a2;
+  padding: 1.1rem 2rem;
   color: white;
+  text-align: center;
   font-weight: 700;
 }
 
@@ -233,7 +238,7 @@ dropdown {
   display: flex;
 }
 
-@media screen and (max-width: 960px) {
+@media screen and (max-width: 1000px) {
 
   /* Hide default layout */
   .nav-menu,
@@ -280,7 +285,7 @@ dropdown {
     display: flex;
     flex-direction: column;
     right: 0;
-    width: 50%;
+    width: 100%;
     top: 21.3rem;
     background: #ffd0ed;
   }
@@ -333,4 +338,7 @@ dropdown {
 }
 .icons.favorite{
   margin-right: -0.5rem;
+}
+.auth-button.signup-button {
+  white-space: nowrap;
 }

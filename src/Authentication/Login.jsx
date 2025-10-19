@@ -4,6 +4,9 @@ import { CgPhone } from "react-icons/cg";
 import { FaFacebook, FaGoogle } from "react-icons/fa";
 import useAuthContext from "../Authentication/AuthContext";
 import Loading from "../Components/Loading/Loading";
+import "./Login.css"; // ✅ Link the CSS file
+import MainImage from "../assets/product_homepage.png"
+
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -31,78 +34,67 @@ const Login = () => {
     }
     console.log("Login attempt finished.", userData);
   };
+
   return (
-    <section className="min-h-screen bg-pink-100 flex items-center justify-center">
-      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-center text-pink-400 mb-4">Login</h1>
+    <section className="login-section">
+       <img className="main_of_image" src={MainImage}/>
+      <div className="login-container">
+        <h1 className="login-title">Login</h1>
 
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {error && <p className="error-message">{error}</p>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="login-form">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <label>Email</label>
             <input
               type="email"
               name="email"
               value={email}
               onChange={handleInputChange}
               placeholder="Enter your email"
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none"
               required
               disabled={isLoading}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <label>Password</label>
             <input
               type="password"
               name="password"
               value={password}
               onChange={handleInputChange}
               placeholder="Enter your password"
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none"
               required
               disabled={isLoading}
             />
           </div>
 
-          <div className="text-right">
-            <Link to="/forgot-password" className="text-sm text-pink-400">
-              Forgot Password?
-            </Link>
+          <div className="forgot-link">
+            <Link to="/forgot-password">Forgot Password?</Link>
           </div>
 
-          <button
-            type="submit"
-            className={`w-full py-2 mt-2 rounded-lg font-bold text-white ${
-              isLoading ? "bg-pink-200 cursor-not-allowed" : "bg-pink-400 hover:bg-pink-500"
-            }`}
-            disabled={isLoading}
-          >
+          <button type="submit" className={`login-button ${isLoading ? "disabled" : ""}`} disabled={isLoading}>
             {isLoading ? "Logging in..." : "Login"}
           </button>
         </form>
 
         {isLoading && <Loading />}
 
-        <div className="my-4 flex items-center justify-center text-sm text-gray-500">Or continue with</div>
+        <div className="divider">Or continue with</div>
 
-        <div className="flex gap-2">
-          <button className="flex-1 py-2 rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2">
+        <div className="social-buttons">
+          <button className="facebook-btn">
             <FaFacebook /> Facebook
           </button>
-          <button className="flex-1 py-2 rounded-lg bg-red-600 text-white flex items-center justify-center gap-2">
+          <button className="google-btn">
             <FaGoogle /> Google
-          </button>
-          <button className="flex-1 py-2 rounded-lg bg-gray-600 text-white flex items-center justify-center gap-2">
-            <CgPhone /> Phone
           </button>
         </div>
 
-        <p className="mt-4 text-center text-gray-700">
+        <p className="signup-text">
           Don't have an account?{" "}
-          <Link to="/signup" className="font-bold text-pink-400 underline">
+          <Link to="/signup" className="signup-link">
             Sign Up
           </Link>
         </p>

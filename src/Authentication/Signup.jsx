@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-
+import "./Signup.css"; // Import the CSS file
+import MainImage from "../assets/product_homepage.png"
 const Signup = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -9,96 +10,82 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#F4BEAE" }}>
-      <div className="w-full max-w-md p-8 rounded-lg shadow-lg" style={{ backgroundColor: "#F4BEAE" }}>
-        <h1 className="text-3xl font-bold mb-6 text-center" style={{ color: "#D4593D" }}>
-          Sign Up
-        </h1>
+    <section className="signup-section">
+        <img className="main_of_image" src={MainImage}/>
+      <div className="signup-container">
+        <h1 className="signup-title">Sign Up</h1>
 
-        <form className="space-y-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <label className="block mb-1" style={{ color: "#D4593D" }}>
-                First Name
-              </label>
+        <form className="signup-form">
+          <div className="name-row">
+            <div className="input-group">
+              <label>First Name</label>
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none"
                 placeholder="First Name"
+                required
               />
             </div>
-            <div className="flex-1">
-              <label className="block mb-1" style={{ color: "#D4593D" }}>
-                Last Name
-              </label>
+
+            <div className="input-group">
+              <label>Last Name</label>
               <input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none"
                 placeholder="Last Name"
+                required
               />
             </div>
           </div>
 
-          <div>
-            <label className="block mb-1" style={{ color: "#D4593D" }}>
-              Email
-            </label>
+          <div className="input-group">
+            <label>Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none"
-              placeholder="Email"
+              placeholder="Enter your email"
+              required
             />
           </div>
 
-          <div>
-            <label className="block mb-1" style={{ color: "#D4593D" }}>
-              Password
-            </label>
+          <div className="input-group">
+            <label>Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none"
-              placeholder="Password"
+              placeholder="Enter your password"
+              required
             />
           </div>
 
-          <div>
-            <label className="block mb-1" style={{ color: "#D4593D" }}>
-              Confirm Password
-            </label>
+          <div className="input-group">
+            <label>Confirm Password</label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none"
-              placeholder="Confirm Password"
+              placeholder="Confirm your password"
+              required
             />
           </div>
 
-          <button
-            type="submit"
-            className="w-full py-2 mt-4 rounded-lg font-bold"
-            style={{ backgroundColor: "#D4593D", color: "#F4BEAE" }}
-          >
+          <button type="submit" className="signup-btn">
             Sign Up
           </button>
         </form>
 
-        <p className="mt-4 text-center" style={{ color: "#D4593D" }}>
+        <p className="signup-footer">
           Already have an account?{" "}
-          <Link to="/login" className="font-bold underline">
+          <Link to="/login" className="login-link">
             Login
           </Link>
         </p>
       </div>
-    </div>
+    </section>
   );
 };
 

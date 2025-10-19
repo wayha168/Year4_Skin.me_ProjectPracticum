@@ -55,10 +55,15 @@
     width: 30px;
     margin: 5px;
 }
-
+.payment_card_wrapper{
+    background: transparent;
+    border-bottom: none;
+}
 .the_last_sentence_wrapper {
     text-align: center;
     margin-top: 30px;
     font-size: 0.9rem;
     color: #ddd;
 }
+
+/* .1112px */
