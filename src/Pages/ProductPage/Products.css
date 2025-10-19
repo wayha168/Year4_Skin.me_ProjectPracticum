@@ -40,32 +40,34 @@
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  /* exactly 4 columns on desktop */
+  grid-template-columns: repeat(5, 2fr);
+  /* 5 columns on desktop */
   gap: 2rem;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
+  .products-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
   .products-grid {
     grid-template-columns: repeat(3, 1fr);
-    /* 3 columns on large tablets */
   }
 }
 
 @media (max-width: 768px) {
   .products-grid {
     grid-template-columns: repeat(2, 1fr);
-    /* 2 columns on tablets */
   }
 }
 
 @media (max-width: 480px) {
   .products-grid {
     grid-template-columns: 1fr;
-    /* 1 column on mobile */
   }
 }
-
 
 .product-card {
   background-color: #fff;
@@ -173,6 +175,39 @@
   transform: translateY(-2px);
 }
 
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+}
+
+.pagination button {
+  border: none;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  background-color: #eee;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.pagination button:hover {
+  background-color: #d13e82;
+  color: white;
+}
+
+.pagination button.active {
+  background-color: #d13e82;
+  color: white;
+  font-weight: bold;
+}
+
+.pagination button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
 .loading {
   text-align: center;
   font-size: 1.2rem;
@@ -193,4 +228,3 @@
     gap: 1.5rem;
   }
 }
-

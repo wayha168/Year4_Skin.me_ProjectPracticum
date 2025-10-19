@@ -35,15 +35,11 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-
-
         {/* Bag Page */}
         <Route path="/bag_page" element={<BagPage />} />
         {/* Check Out Page */}
         <Route path="/check_out" element={<CheckOutPage />} />
         
-
-
         {/* Dashboard Pages */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/product-crud" element={<ProductCrud />} />

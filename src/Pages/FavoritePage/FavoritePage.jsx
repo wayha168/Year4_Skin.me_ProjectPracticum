@@ -1,42 +1,62 @@
-// src/Pages/FavoritePage/FavoritePage.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "../../api/axiosConfig";
 import "./FavoritePage.css";
 import ThirdImage from "../../assets/third_image.png";
 import Navbar from "../../Components/Navbar/Navbar";
 import Footer from "../../Components/Footer/Footer";
 
-const mockProducts = [
-  { id: 1, title: "Skin Care", desc: "Protect your skin from the sun", price: 9.99 },
-  { id: 2, title: "Hydrating Cream", desc: "Keeps your skin moisturized", price: 14.99 },
-  { id: 3, title: "Vitamin C Serum", desc: "Brightens and evens skin tone", price: 19.99 },
-  { id: 4, title: "Sunscreen", desc: "SPF 50+ protection for daily use", price: 12.99 },
-  { id: 5, title: "Cleanser", desc: "Removes dirt and excess oil", price: 8.99 },
-  { id: 6, title: "Toner", desc: "Balances and refreshes your skin", price: 11.99 },
-  { id: 7, title: "Night Cream", desc: "Restores your skin overnight", price: 17.49 },
-  { id: 8, title: "Aloe Vera Gel", desc: "Soothes and cools irritation", price: 7.99 },
-];
-
 export const FavoritePage = () => {
+  const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [bagAdded, setBagAdded] = useState(false);
   const [favoriteRemoved, setFavoriteRemoved] = useState(false);
   const navigate = useNavigate();
 
+  // ✅ Replace this with real logged-in user ID (from context, cookie, etc.)
+  const userId = localStorage.getItem("userId") || 1;
+
+  // ✅ Fetch favorites from backend
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        const res = await axios.get(`/favorites/${userId}`, { withCredentials: true });
+        const data = res?.data?.data || [];
+        setFavorites(data);
+      } catch (err) {
+        console.error("Error fetching favorites:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFavorites();
+  }, [userId]);
+
+  // ✅ Add to bag
   const handleAddToBag = (e) => {
     e.preventDefault();
     setBagAdded(true);
     setTimeout(() => setBagAdded(false), 2000);
   };
 
-  const handleRemoveFavorite = (e) => {
+  // ✅ Remove favorite from backend
+  const handleRemoveFavorite = async (productId, e) => {
     e.preventDefault();
-    setFavoriteRemoved(true);
-    setTimeout(() => setFavoriteRemoved(false), 2000);
+    try {
+      await axios.delete(`/favorites/remove`, {
+        params: { userId, productId },
+        withCredentials: true,
+      });
+      setFavorites((prev) => prev.filter((p) => p.product.id !== productId));
+      setFavoriteRemoved(true);
+      setTimeout(() => setFavoriteRemoved(false), 2000);
+    } catch (err) {
+      console.error("Error removing favorite:", err);
+    }
   };
 
-  // ✅ Redirect to /check_out instead of /checkout
-  const handleImageClick = () => {
-    navigate("/check_out");
+  const handleImageClick = (productId) => {
+    navigate(`/product/${productId}`);
   };
 
   return (
@@ -51,34 +71,48 @@ export const FavoritePage = () => {
           <h1 className="favorite-title">My Favorite</h1>
         </div>
 
-        <div className="products-grid">
-          {mockProducts.map((product) => (
-            <div className="product-card" key={product.id}>
-              <div className="product-img-container" onClick={handleImageClick}>
-                <img
-                  id="image_favorite"
-                  src={ThirdImage}
-                  alt={product.title}
-                  className="product-img"
-                />
-              </div>
-              <div className="product-info">
-                <h3 className="product-name">{product.title}</h3>
-                <p className="product-desc">{product.desc}</p>
-                <p className="product-price">${product.price.toFixed(2)}</p>
-
-                <div className="add_to_card_and_remove">
-                  <div className="add_to_bag" onClick={handleAddToBag}>
-                    <i className="fa-solid fa-bag-shopping" />
+        {loading ? (
+          <p className="loading">Loading favorites...</p>
+        ) : favorites.length === 0 ? (
+          <p className="loading">No favorite products found.</p>
+        ) : (
+          <div className="products-grid">
+            {favorites.map((fav) => {
+              const product = fav.product || {};
+              return (
+                <div className="product-card" key={product.id}>
+                  <div className="product-img-container" onClick={() => handleImageClick(product.id)}>
+                    <img
+                      id="image_favorite"
+                      src={
+                        product?.images?.[0]?.downloadUrl
+                          ? `https://backend.skinme.store${product.images[0].downloadUrl}`
+                          : ThirdImage
+                      }
+                      alt={product.name}
+                      className="product-img"
+                    />
                   </div>
-                  <p className="remove_favorite" onClick={handleRemoveFavorite}>
-                    remove
-                  </p>
+
+                  <div className="product-info">
+                    <h3 className="product-name">{product.name}</h3>
+                    <p className="product-desc">{product.description || "No description available."}</p>
+                    <p className="product-price">${product.price?.toFixed(2)}</p>
+
+                    <div className="add_to_card_and_remove">
+                      <div className="add_to_bag" onClick={handleAddToBag}>
+                        <i className="fa-solid fa-bag-shopping" />
+                      </div>
+                      <p className="remove_favorite" onClick={(e) => handleRemoveFavorite(product.id, e)}>
+                        remove
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <Footer />

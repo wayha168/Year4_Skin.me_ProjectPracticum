@@ -15,17 +15,19 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 15; // 5 columns × 3 rows
+
   const { user } = useAuthContext();
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await axios.get("/products/all", { withCredentials: true }); // <-- axios
+        const res = await axios.get("/products/all", { withCredentials: true });
         setProducts(res?.data?.data || []);
       } catch (err) {
         console.error("Error fetching products:", err);
-        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -33,11 +35,10 @@ const Products = () => {
 
     const fetchCategories = async () => {
       try {
-        const res = await axios.get("/categories/all-categories"); // <-- axios
+        const res = await axios.get("/categories/all-categories");
         setCategories(res?.data?.data || []);
       } catch (err) {
         console.error("Error fetching categories:", err);
-        setCategories([]);
       }
     };
 
@@ -47,17 +48,12 @@ const Products = () => {
 
   const handleAddToCart = (product) => {
     if (!user) return alert("Please log in to add to cart");
-    if (!product?.name) return alert("Invalid product");
     alert(`Added ${product.name} to cart`);
   };
 
-  const handleImageClick = () => {
-    navigate("/check_out"); // redirect when clicking product image
-  };
-
+  const handleImageClick = () => navigate("/check_out");
   const handleFavorite = (product) => {
     if (!user) return alert("Please log in to favorite");
-    if (!product?.name) return alert("Invalid product");
     alert(`Added ${product.name} to favorites`);
   };
 
@@ -65,8 +61,13 @@ const Products = () => {
   const filteredProducts = Array.isArray(products)
     ? products
         .filter((p) => (selectedCategory ? p?.category?.id === selectedCategory : true))
-        .filter((p) => p?.name?.toLowerCase().includes(searchTerm.toLowerCase() || ""))
+        .filter((p) => p?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
     : [];
+
+  // Pagination
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+  const startIndex = (currentPage - 1) * productsPerPage;
+  const currentProducts = filteredProducts.slice(startIndex, startIndex + productsPerPage);
 
   return (
     <>
@@ -83,12 +84,11 @@ const Products = () => {
               className="sort-select"
             >
               <option value="">All Categories</option>
-              {Array.isArray(categories) &&
-                categories.map((cat) => (
-                  <option key={cat?.id} value={cat?.id}>
-                    {cat?.name || "Unnamed Category"}
-                  </option>
-                ))}
+              {categories.map((cat) => (
+                <option key={cat?.id} value={cat?.id}>
+                  {cat?.name || "Unnamed Category"}
+                </option>
+              ))}
             </select>
 
             <input
@@ -104,40 +104,65 @@ const Products = () => {
         {/* Products Grid */}
         {loading ? (
           <p className="loading">Loading products...</p>
-        ) : !Array.isArray(filteredProducts) || filteredProducts.length === 0 ? (
+        ) : currentProducts.length === 0 ? (
           <p className="loading">No products found.</p>
         ) : (
-          <div className="products-grid">
-            {filteredProducts.map((p) => (
-              <div key={p?.id || Math.random()} className="product-card">
-                <div className="product-img-container">
-                  <img
-                    src={
-                      p?.images?.[0]?.downloadUrl
-                        ? `https://backend.skinme.store${p.images[0].downloadUrl}`
-                        : ThirdImage
-                    }
-                    alt={p?.name || "Product Image"}
-                    className="product-img"
-                    onClick={handleImageClick}
+          <>
+            <div className="products-grid">
+              {currentProducts.map((p) => (
+                <div key={p?.id} className="product-card">
+                  <div className="product-img-container">
+                    <img
+                      src={
+                        p?.images?.[0]?.downloadUrl
+                          ? `https://backend.skinme.store${p.images[0].downloadUrl}`
+                          : ThirdImage
+                      }
+                      alt={p?.name || "Product Image"}
+                      className="product-img"
+                      onClick={handleImageClick}
+                    />
+                    <button className="favorite-btn" onClick={() => handleFavorite(p)}>
+                      <FaHeart />
+                    </button>
+                  </div>
 
-                  />
-                  <button className="favorite-btn" onClick={() => handleFavorite(p)}>
-                    <FaHeart />
-                  </button>
+                  <div className="product-info">
+                    <h3 className="product-name">{p?.name || "No Name"}</h3>
+                    <p className="product-desc">{p?.description || "No description available"}</p>
+                    <p className="product-price">${p?.price ?? "N/A"}</p>
+                    <button className="add-to-cart" onClick={() => handleAddToCart(p)}>
+                      <FaCartPlus />
+                    </button>
+                  </div>
                 </div>
+              ))}
+            </div>
 
-                <div className="product-info">
-                  <h3 className="product-name">{p?.name || "No Name"}</h3>
-                  <p className="product-desc">{p?.description || "No description available"}</p>
-                  <p className="product-price">${p?.price ?? "N/A"}</p>
-                  <button className="add-to-cart" onClick={() => handleAddToCart(p)}>
-                    <FaCartPlus />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+            {/* Pagination Controls */}
+            <div className="pagination">
+              <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}>
+                Prev
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i + 1}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={currentPage === i + 1 ? "active" : ""}
+                >
+                  {i + 1}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </>
         )}
       </main>
 
