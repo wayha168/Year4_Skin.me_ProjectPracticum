@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CgPhone } from "react-icons/cg";
 import { FaFacebook, FaGoogle } from "react-icons/fa";
-import useAuthContext from "../Authentication/AuthContext";
+import useAuthContext from "../hooks/AuthContext";
 import Loading from "../Components/Loading/Loading";
-import "./Login.css"; // ✅ Link the CSS file
+import "./Login.css"; 
 import MainImage from "../assets/product_homepage.png"
-
 
 const Login = () => {
   const [email, setEmail] = useState("");
