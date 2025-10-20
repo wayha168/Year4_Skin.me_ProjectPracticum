@@ -44,7 +44,6 @@ const Navbar = ({ alwaysVisible = false }) => {
     setMenuOpen(false);
     setTimeout(() => setLoading(false), 500);
   };
-  
 
   return (
     <>
@@ -83,7 +82,11 @@ const Navbar = ({ alwaysVisible = false }) => {
 
           {/* Auth Menu */}
           <div className={`auth-menu ${menuOpen ? "active" : ""}`}>
-            <Link to="/favorites" onClick={() => safeNavigate("/favorites")} className="icons nav-icon favorite">
+            <Link
+              to="/favorites"
+              onClick={() => safeNavigate("/favorites")}
+              className="icons nav-icon favorite"
+            >
               <i className="fa-solid fa-heart" />
             </Link>
             <Link to="/bag_page" onClick={() => safeNavigate("/bag_page")} className="icons nav-icon">

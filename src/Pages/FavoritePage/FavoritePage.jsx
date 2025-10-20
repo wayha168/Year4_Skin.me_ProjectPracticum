@@ -66,7 +66,7 @@ export const FavoritePage = () => {
       {bagAdded && <div className="bag-alert">Added To Your Bag</div>}
       {favoriteRemoved && <div className="bag-alert">Removed From Favorite</div>}
 
-      <section className="products-section">
+      <section className="products-section  h-auto min-h-screen py-8 px-4 bg-gray-100">
         <div className="products-favorite">
           <h1 className="favorite-title">My Favorite</h1>
         </div>

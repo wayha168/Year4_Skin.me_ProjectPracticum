@@ -16,46 +16,45 @@ import CategoryCrud from "./Dashboard/CategoryCrud";
 import ScrollToTop from "./Components/ScrollToTop/ScrollToTop";
 import CheckOutPage from "./Pages/CheckOutPage/CheckOutPage";
 import BagPage from "./Pages/BagPage/BagPage";
-
-
-
+import ErrorBoundary from "./Components/ErrorBoundary/ErrorBoundary";
 
 function App() {
   return (
     <>
       <ScrollToTop />
-      
-      <Routes>
-        {/* Public Pages */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/about-us" element={<AboutUsPage />} />
-        <Route path="/favorites" element={<FavoritePage />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        {/* Bag Page */}
-        <Route path="/bag_page" element={<BagPage />} />
-        {/* Check Out Page */}
-        <Route path="/check_out" element={<CheckOutPage />} />
-        
-        {/* Dashboard Pages */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/product-crud" element={<ProductCrud />} />
-        <Route path="/order-control" element={<OrderControl />} />
-        <Route path="/image-crud" element={<ImageCrud />} />
-        <Route path="/category-crud" element={<CategoryCrud />} />
+      <ErrorBoundary>
+        <Routes>
+          {/* Public Pages */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/about-us" element={<AboutUsPage />} />
+          <Route path="/favorites" element={<FavoritePage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          {/* Bag Page */}
+          <Route path="/bag_page" element={<BagPage />} />
+          {/* Check Out Page */}
+          <Route path="/check_out" element={<CheckOutPage />} />
 
-        {/* Redirects */}
-        <Route path="/home" element={<Navigate to="/" replace />} />
+          {/* Dashboard Pages */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/product-crud" element={<ProductCrud />} />
+          <Route path="/order-control" element={<OrderControl />} />
+          <Route path="/image-crud" element={<ImageCrud />} />
+          <Route path="/category-crud" element={<CategoryCrud />} />
 
-        {/* 404 Fallback */}
-        <Route
-          path="*"
-          element={<div className="text-center mt-20 text-2xl font-semibold">404 - Page Not Found</div>}
-        />
-      </Routes>
+          {/* Redirects */}
+          <Route path="/home" element={<Navigate to="/" replace />} />
+
+          {/* 404 Fallback */}
+          <Route
+            path="*"
+            element={<div className="text-center mt-20 text-2xl font-semibold">404 - Page Not Found</div>}
+          />
+        </Routes>
+      </ErrorBoundary>
     </>
   );
 }

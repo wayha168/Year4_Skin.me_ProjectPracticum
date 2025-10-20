@@ -1,11 +1,11 @@
 // src/Authentication/Login.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CgPhone } from "react-icons/cg";
 import { FaFacebook, FaGoogle } from "react-icons/fa";
-import useAuthContext from "../Authentication/AuthContext";
+import useAuthContext from "./AuthContext";
 import Loading from "../Components/Loading/Loading";
 import "./Login.css"; // ✅ Link the CSS file
+import "./Login.css";
 import MainImage from "../assets/product_homepage.png";
 
 const Login = () => {
@@ -41,6 +41,7 @@ const Login = () => {
     <section className="login-section">
       <img className="main_of_image" src={MainImage} alt="Main visual" />
       
+      <img className="main_of_image" src={MainImage} />
       <div className="login-container">
         <h1 className="login-title">Login</h1>
 

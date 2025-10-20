@@ -4,6 +4,7 @@ import Navbar from "../../Components/Navbar/Navbar.jsx";
 import Footer from "../../Components/Footer/Footer.jsx";
 import axios from "../../api/axiosConfig";
 
+
 import "./HomePage.css";
 import MainImage from "../../assets/product_homepage.png";
 import FirstImage from "../../assets/first_image.png";
@@ -19,7 +20,6 @@ const HomePage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Scroll to “Our Products” when coming from Nav or button
   const scrollToProducts = () => {
     const section = document.getElementById("product");
     if (section) {
@@ -35,7 +35,6 @@ const HomePage = () => {
     }
   }, [location]);
 
-  // ✅ Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -50,7 +49,6 @@ const HomePage = () => {
     fetchProducts();
   }, []);
 
-  // ✅ Notifications
   const handleFavoriteClick = (e) => {
     e.preventDefault();
     setFavoriteAdded(true);
@@ -63,7 +61,6 @@ const HomePage = () => {
     setTimeout(() => setBagAdded(false), 2000);
   };
 
-  // ✅ “Shop Now” scrolls smoothly to product section
   const goToProducts = (e) => {
     e.preventDefault();
     scrollToProducts();

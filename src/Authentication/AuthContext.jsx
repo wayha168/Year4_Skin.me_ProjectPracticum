@@ -103,16 +103,16 @@
         setUser(null);
         navigate("/login");
 
-        if (token) {
-          await axiosAuth.post("/auth/logout"); // token automatically added by axiosAuth
-        }
-      } catch (err) {
-        console.error("Logout error:", err);
-        setUser(null);
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
+      if (token) {
+        await axiosAuth.post("/auth/logout"); // token automatically added by axiosAuth
       }
-    };
+    } catch (err) {
+      console.error("Logout error:", err);
+      setUser(null);
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+    }
+  };
 
     return (
       <AuthContext.Provider value={{ user, error, login, signup, logout }}>{children}</AuthContext.Provider>
