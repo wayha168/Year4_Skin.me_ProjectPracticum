@@ -11,19 +11,17 @@ function BagPage() {
   const [cartItems, setCartItems] = useState([]);
   const [removedFromBag, setRemovedFromBag] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [cartId] = useState(1); // Replace with actual user cart ID
 
-  // Fetch cart from backend
+  // ✅ Fetch current user's cart
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        const res = await axios.get(`/carts/${cartId}/my-cart`, { withCredentials: true });
-        const cartData = res?.data?.data;
-        if (cartData && cartData.items) {
-          setCartItems(cartData.items);
-        } else {
-          setCartItems([]);
-        }
+        const res = await axios.get("/carts/my-cart", { withCredentials: true });
+        // The cart object has "items" as a Set, convert to array if needed
+        const itemsArray = Array.isArray(res.data.data.items)
+          ? res.data.data.items
+          : Array.from(res.data.data.items || []);
+        setCartItems(itemsArray);
       } catch (err) {
         console.error("Error fetching cart:", err);
         setCartItems([]);
@@ -31,29 +29,30 @@ function BagPage() {
         setLoading(false);
       }
     };
-    fetchCart();
-  }, [cartId]);
 
-  // Remove entire cart
+    fetchCart();
+  }, []);
+
+  // ✅ Clear cart
   const handleRemoveBag = async (e) => {
     e.preventDefault();
     try {
-      await axios.delete(`/carts/${cartId}/clear`, { withCredentials: true });
+      await axios.delete("/carts/my-cart/clear", { withCredentials: true });
       setCartItems([]);
       setRemovedFromBag(true);
       setTimeout(() => setRemovedFromBag(false), 2000);
     } catch (err) {
-      console.error("Error removing cart:", err);
+      console.error("Error clearing cart:", err);
     }
   };
 
-  // Navigate to checkout
   const handleCheckOut = () => {
     navigate("/check_out");
   };
 
-  const imageBagClick = () => {
-    navigate("/check_out");
+  const getProductImage = (item) => {
+    const imageUrl = item?.product?.images?.[0]?.downloadUrl;
+    return imageUrl ? `https://backend.skinme.store${imageUrl}` : ThirdImage;
   };
 
   return (
@@ -62,7 +61,7 @@ function BagPage() {
 
       {removedFromBag && <div className="remove_bag_alert">Removed From Bag</div>}
 
-      <section className="products-section  h-auto min-h-screen py-8 px-4 bg-gray-100">
+      <section className="products-section h-auto min-h-screen py-8 px-4 bg-gray-100">
         <div className="products-favorite">
           <h1 className="favorite-title">My Bag</h1>
         </div>
@@ -77,12 +76,8 @@ function BagPage() {
               <div className="product-card" key={item.id}>
                 <div className="product-img-container">
                   <img
-                    onClick={imageBagClick}
-                    src={
-                      item?.product?.images?.[0]?.downloadUrl
-                        ? `https://backend.skinme.store${item.product.images[0].downloadUrl}`
-                        : ThirdImage
-                    }
+                    onClick={handleCheckOut}
+                    src={getProductImage(item)}
                     alt={item.product.name}
                     className="product-img"
                   />
@@ -92,6 +87,7 @@ function BagPage() {
                   <h3 className="product-name">{item.product.name}</h3>
                   <p className="product-desc">{item.product.description}</p>
                   <p className="product-price">${item.product.price?.toFixed(2)}</p>
+                  <p className="product-qty">Quantity: {item.quantity}</p>
 
                   <div className="add_to_card_and_remove">
                     <button className="add-to-cart" onClick={handleCheckOut}>

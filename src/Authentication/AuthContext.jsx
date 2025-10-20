@@ -94,6 +94,7 @@ export const AuthProvider = ({ children }) => {
 
       if (token) {
         await axiosAuth.post("/auth/logout"); 
+      }
     } catch (err) {
       console.error("Logout error:", err);
       setUser(null);

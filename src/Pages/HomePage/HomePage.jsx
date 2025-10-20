@@ -4,6 +4,7 @@ import Navbar from "../../Components/Navbar/Navbar.jsx";
 import Footer from "../../Components/Footer/Footer.jsx";
 import axios from "../../api/axiosConfig";
 
+
 import "./HomePage.css";
 import MainImage from "../../assets/product_homepage.png";
 import FirstImage from "../../assets/first_image.png";
