@@ -93,8 +93,7 @@ export const AuthProvider = ({ children }) => {
       navigate("/login");
 
       if (token) {
-        await axiosAuth.post("/auth/logout"); // token automatically added by axiosAuth
-      }
+        await axiosAuth.post("/auth/logout"); 
     } catch (err) {
       console.error("Logout error:", err);
       setUser(null);

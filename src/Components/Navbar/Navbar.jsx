@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import useAuthContext from "../../hooks/AuthContext";
+import useAuthContext from "../../Authentication/AuthContext";
 import Loading from "../Loading/Loading";
 import "./Navbar.css";
 

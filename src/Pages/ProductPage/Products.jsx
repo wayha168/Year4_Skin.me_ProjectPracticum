@@ -6,7 +6,7 @@ import Navbar from "../../Components/Navbar/Navbar";
 import Footer from "../../Components/Footer/Footer";
 import ThirdImage from "../../assets/third_image.png";
 import { FaCartPlus, FaHeart } from "react-icons/fa";
-import useAuthContext from "../../hooks/AuthContext";
+import useAuthContext from "../../Authentication/AuthContext";
 import "./Products.css";
 
 const Products = () => {

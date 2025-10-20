@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import "./Signup.css"; // Import the CSS file
-import MainImage from "../assets/product_homepage.png"
+// import useAuthContext from "../hooks/AuthContext";
+import "./Signup.css";
+import MainImage from "../assets/product_homepage.png";
 
 const Signup = () => {
   const [firstName, setFirstName] = useState("");
@@ -12,7 +13,7 @@ const Signup = () => {
 
   return (
     <section className="signup-section">
-        <img className="main_of_image" src={MainImage}/>
+      <img className="main_of_image" src={MainImage} />
       <div className="signup-container">
         <h1 className="signup-title">Sign Up</h1>
 

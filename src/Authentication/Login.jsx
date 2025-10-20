@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaFacebook, FaGoogle } from "react-icons/fa";
-import useAuthContext from "../hooks/AuthContext";
+import useAuthContext from "./AuthContext";
 import Loading from "../Components/Loading/Loading";
-import "./Login.css"; 
-import MainImage from "../assets/product_homepage.png"
+import "./Login.css";
+import MainImage from "../assets/product_homepage.png";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -35,7 +35,7 @@ const Login = () => {
 
   return (
     <section className="login-section">
-       <img className="main_of_image" src={MainImage}/>
+      <img className="main_of_image" src={MainImage} />
       <div className="login-container">
         <h1 className="login-title">Login</h1>
 
@@ -72,7 +72,11 @@ const Login = () => {
             <Link to="/forgot-password">Forgot Password?</Link>
           </div>
 
-          <button type="submit" className={`login-button ${isLoading ? "disabled" : ""}`} disabled={isLoading}>
+          <button
+            type="submit"
+            className={`login-button ${isLoading ? "disabled" : ""}`}
+            disabled={isLoading}
+          >
             {isLoading ? "Logging in..." : "Login"}
           </button>
         </form>
