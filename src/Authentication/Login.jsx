@@ -1,3 +1,4 @@
+// src/Authentication/Login.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CgPhone } from "react-icons/cg";
@@ -5,8 +6,7 @@ import { FaFacebook, FaGoogle } from "react-icons/fa";
 import useAuthContext from "../Authentication/AuthContext";
 import Loading from "../Components/Loading/Loading";
 import "./Login.css"; // ✅ Link the CSS file
-import MainImage from "../assets/product_homepage.png"
-
+import MainImage from "../assets/product_homepage.png";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -23,21 +23,24 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsLoading(true); // show spinner immediately
+
     const userData = await login({ email, password });
-    setIsLoading(false);
 
     if (userData) {
       const rolesArray = Array.isArray(userData.roles) ? userData.roles : [userData.role];
       const isAdmin = rolesArray.includes("ROLE_ADMIN") || rolesArray.includes("ADMIN");
       navigate(isAdmin ? "/dashboard" : "/");
     }
+
+    setIsLoading(false); // hide spinner after everything done
     console.log("Login attempt finished.", userData);
   };
 
   return (
     <section className="login-section">
-       <img className="main_of_image" src={MainImage}/>
+      <img className="main_of_image" src={MainImage} alt="Main visual" />
+      
       <div className="login-container">
         <h1 className="login-title">Login</h1>
 
@@ -74,12 +77,14 @@ const Login = () => {
             <Link to="/forgot-password">Forgot Password?</Link>
           </div>
 
-          <button type="submit" className={`login-button ${isLoading ? "disabled" : ""}`} disabled={isLoading}>
+          <button
+            type="submit"
+            className={`login-button ${isLoading ? "disabled" : ""}`}
+            disabled={isLoading}
+          >
             {isLoading ? "Logging in..." : "Login"}
           </button>
         </form>
-
-        {isLoading && <Loading />}
 
         <div className="divider">Or continue with</div>
 
@@ -99,6 +104,9 @@ const Login = () => {
           </Link>
         </p>
       </div>
+
+      {/* ✅ Full-page loading overlay */}
+      {isLoading && <Loading />}
     </section>
   );
 };

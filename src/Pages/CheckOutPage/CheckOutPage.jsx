@@ -6,7 +6,7 @@ import ImageThree from '../../assets/third_image.png';
 import ImageOne from '../../assets/first_image.png';
 import ImageTwo from '../../assets/second_image.png';
 import "./CheckOutPage.css";
-
+// fasdfdaf
 function CheckOutPage() {
   const [quantity, setQuantity] = useState(1);
   const [showPopup, setShowPopup] = useState(false); // ✅ popup state
@@ -43,7 +43,7 @@ function CheckOutPage() {
 
         <div className="price_and_amount_wrapper">
           <p className="skin_me">SKIN.ME</p>
-          <p className="font_word">Hydrating Cream</p>
+          <p className="font_word hydrating">Hydrating Cream</p>
           <p className="font_word">${totalPrice}</p>
 
           <div className="plus_minus_wrapper">
@@ -60,11 +60,11 @@ function CheckOutPage() {
             </p>
           </div>
 
-          <div className="buy_now_wrapper">
+          <div onClick={handleBuyNow} className="buy_now_wrapper">
             <p
               id='buy_now'
               className="buy_now"
-              onClick={handleBuyNow} // ✅ trigger popup
+               // ✅ trigger popup
             >
               Buy Now
             </p>
@@ -75,11 +75,6 @@ function CheckOutPage() {
               SKIN.ME Hydrating Cream deeply nourishes and refreshes your skin, leaving it soft, smooth, and
               healthy-looking. Designed for daily use, it restores moisture balance and strengthens your skin’s
               natural barrier for long-lasting hydration.
-            </p>
-            <p>
-              Made with natural ingredients and dermatologically tested, this cream suits all skin types and helps
-              reduce dryness and dullness. Feel confident every day with skin that glows naturally and stays hydrated
-              from morning to night.
             </p>
           </div>
         </div>

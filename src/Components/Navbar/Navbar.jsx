@@ -94,7 +94,7 @@ const Navbar = ({ alwaysVisible = false }) => {
                 <Link to="/profile" onClick={() => safeNavigate("/profile")} className="icons nav-icon">
                   <i className="fa-solid fa-user" />
                 </Link>
-                <button onClick={handleLogout} className="auth-button logout-button">
+                <button onClick={handleLogout} className="auth_button logout_button">
                   Logout
                 </button>
               </>

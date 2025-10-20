@@ -13,17 +13,24 @@
     display: flex;   
     flex-direction: row;
 }
+/* ladsfj    */
 .image_and_price_amount{
     display: flex;
     flex-direction: row;
 }
 .price_and_amount_wrapper{
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
     margin-top: 8rem;
 }
 .font_word{
     font-family: Arial, Helvetica, sans-serif;
     font-size: 2.5rem;
     font-weight: 500;
+}
+.font_word.hydrating{
+    font: 400 3rem arial;
 }
 .font_word.plus_minus{
     padding: 5px 10px;
@@ -33,29 +40,42 @@
 }
 .skin_me{
     margin-bottom: 4rem;
+    color: #EB61A2;
+    font: 600 2.5rem arial;
 }
 .plus_minus_wrapper{
     display: flex;
     flex-direction: row;
     justify-content: center; /* horizontally center children */
     align-items: center;     /* vertically center children */
-    border: 2px solid black;
+    border: 2px solid #EB61A1;
     width: 15rem;            /* optional: set width of container */
-    height: 4rem;            /* optional: set height */
+    height: 4rem;               /* optional: set height */
     gap: 1rem; 
-    border-radius: 10px;
+    border-radius: 30rem;
+    color: #EB61A1;
+    user-select: none;
 }
 .buy_now_wrapper{
     display: flex;
     flex-direction: row;
     justify-content: center; /* horizontally center children */
     align-items: center;
-    background: #000;     /* vertically center children */
+    background: #EB61A1;     /* vertically center children */
     width: 15rem;            /* optional: set width of container */
     height: 4rem;  
     margin-top: 1rem;
     cursor: pointer;
-    border-radius: 10px;
+    border-radius: 20rem;
+    user-select: none;
+}
+.buy_now_wrapper:hover{
+    transition: 0.3s;
+    background: #ff67ae;     /* vertically center children */
+}
+.buy_now_wrapper:active{
+    transition: 0.03s;
+    background: #EB61A1;     /* vertically center children */
 }
 .buy_now{
     color: #fff;
@@ -65,8 +85,9 @@
 }
 .lorem{
     margin-top: 0.5rem;
-    width: 30rem;
+    width: 20rem;
     font-size: 1.8rem;
+    margin-right: 2rem;
 }
 .plus_minus.disabled {
   opacity: 0.5;
@@ -92,3 +113,19 @@
   80% { opacity: 1; }
   100% { opacity: 0; }
 }
+@media screen and (max-width: 1190px){
+    .image_wrapper{
+    scale: 0.8;
+    margin-top: -5rem;
+}
+
+}
+@media screen and (max-width: 840px){
+    .image_and_price_amount{
+        scale: 0.9;
+        margin-top: -5rem;
+    }
+}
+
+
+/* 1190px */
