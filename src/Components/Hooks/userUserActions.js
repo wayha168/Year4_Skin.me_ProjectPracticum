@@ -49,7 +49,7 @@ const useUserActions = () => {
       return true;
     } catch (err) {
       console.error("Error adding to favorite:", err);
-      setMessage(err.response?.data?.message || "Failed to add to favorite");
+      setMessage(err.response?.data?.message || err.response?.data?.error || "Failed to add to favorite");
       return false;
     } finally {
       setLoading(false);
@@ -57,7 +57,6 @@ const useUserActions = () => {
     }
   };
 
-  // 🗑 Remove from Favorite
   const removeFavorite = async (productId) => {
     if (!user) {
       setMessage("Please log in to remove favorite");
@@ -74,7 +73,7 @@ const useUserActions = () => {
       return true;
     } catch (err) {
       console.error("Error removing favorite:", err);
-      setMessage(err.response?.data?.message || "Failed to remove favorite");
+      setMessage(err.response?.data?.message || err.response?.data?.error || "Failed to remove favorite");
       return false;
     } finally {
       setLoading(false);

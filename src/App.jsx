@@ -5,7 +5,7 @@ import Login from "./Authentication/Login";
 import Signup from "./Authentication/Signup";
 import Products from "./Pages/ProductPage/Products";
 import AboutUsPage from "./Pages/AboutUs/AboutUsPage";
-import { FavoritePage } from "./Pages/FavoritePage/FavoritePage";
+import FavoritePage from "./Pages/FavoritePage/FavoritePage";
 import CartPage from "./Pages/CartPage/CartPage";
 import ProfilePage from "./Pages/ProfilePage/ProfilePage";
 import { OrderControl } from "./Dashboard/OrderControl";

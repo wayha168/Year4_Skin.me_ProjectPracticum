@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState, useContext } from "react";
-import axiosAuth from "../api/axiosConfig"; 
+import axiosAuth from "../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 
@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }) => {
       navigate("/login");
 
       if (token) {
-        await axiosAuth.post("/auth/logout"); 
+        await axiosAuth.post("/auth/logout");
       }
     } catch (err) {
       console.error("Logout error:", err);

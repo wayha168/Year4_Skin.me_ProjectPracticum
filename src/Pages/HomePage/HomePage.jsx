@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../../Components/Navbar/Navbar.jsx";
 import Footer from "../../Components/Footer/Footer.jsx";
 import axios from "../../api/axiosConfig";
-
-
+import useUserActions from "../../Components/Hooks/userUserActions.js";
+import useAuthContext from "../../Authentication/AuthContext.jsx";
 import "./HomePage.css";
 import MainImage from "../../assets/product_homepage.png";
 import FirstImage from "../../assets/first_image.png";
@@ -15,8 +15,9 @@ import { FaCartPlus, FaHeart } from "react-icons/fa";
 const HomePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [favoriteAdded, setFavoriteAdded] = useState(false);
-  const [bagAdded, setBagAdded] = useState(false);
+  const { user } = useAuthContext();
+
+  const { addToCart, addToFavorite, message } = useUserActions();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,16 +50,16 @@ const HomePage = () => {
     fetchProducts();
   }, []);
 
-  const handleFavoriteClick = (e) => {
-    e.preventDefault();
-    setFavoriteAdded(true);
-    setTimeout(() => setFavoriteAdded(false), 2000);
+  const handleFavoriteClick = async (productId) => {
+    if (!user) return alert("Please log in to add favorite");
+    const success = await addToFavorite(productId);
+    if (success) setTimeout(() => {}, 2000);
   };
 
-  const handleBagClick = (e) => {
-    e.preventDefault();
-    setBagAdded(true);
-    setTimeout(() => setBagAdded(false), 2000);
+  const handleAddToCartClick = async (productId) => {
+    if (!user) return alert("Please log in to add to cart");
+    const success = await addToCart(productId, 1);
+    if (success) setTimeout(() => {}, 2000);
   };
 
   const goToProducts = (e) => {
@@ -69,8 +70,7 @@ const HomePage = () => {
   return (
     <>
       <Navbar alwaysVisible={true} />
-      {favoriteAdded && <div className="favorite-alert">Added To Your Favorite</div>}
-      {bagAdded && <div className="bag-alert">Added To Your Bag</div>}
+      {message && <div className="toast-message">{message}</div>}
 
       {/* ===== HERO SECTION ===== */}
       <div className="homepage_main_wrapper">
@@ -148,14 +148,14 @@ const HomePage = () => {
                     alt={p.name}
                     className="product-img"
                   />
-                  <button onClick={handleFavoriteClick} className="favorite-btn">
+                  <button className="favorite-btn" onClick={() => handleFavoriteClick(p.id)}>
                     <FaHeart />
                   </button>
                 </div>
                 <div className="product-info">
                   <h3 className="product-name">{p.name}</h3>
                   <p className="product-price">${p.price}</p>
-                  <button onClick={handleBagClick} className="add-to-cart">
+                  <button className="add-to-cart" onClick={() => handleAddToCartClick(p.id)}>
                     <FaCartPlus /> Add to Cart
                   </button>
                 </div>
