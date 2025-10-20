@@ -1,4 +1,3 @@
-// src/Pages/Products/Products.jsx
 import { useNavigate } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import axios from "../../api/axiosConfig";
@@ -7,6 +6,8 @@ import Footer from "../../Components/Footer/Footer";
 import ThirdImage from "../../assets/third_image.png";
 import { FaCartPlus, FaHeart } from "react-icons/fa";
 import useAuthContext from "../../Authentication/AuthContext";
+import Loading from "../../Components/Loading/Loading";
+import useUserActions from "../../Components/Hooks/userUserActions";
 import "./Products.css";
 
 const Products = () => {
@@ -16,10 +17,13 @@ const Products = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 15; // 5 columns × 3 rows
+  const productsPerPage = 15;
 
   const { user } = useAuthContext();
   const navigate = useNavigate();
+  const { addToCart, addToFavorite, message } = useUserActions();
+
+  const handleImageClick = () => navigate("/check_out");
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -46,15 +50,16 @@ const Products = () => {
     fetchCategories();
   }, []);
 
-  const handleAddToCart = (product) => {
+  const handleAddToCart = async (product) => {
     if (!user) return alert("Please log in to add to cart");
-    alert(`Added ${product.name} to cart`);
+    const success = await addToCart(product.id, 1);
+    if (success) alert(`Added ${product.name} to cart`);
   };
 
-  const handleImageClick = () => navigate("/check_out");
-  const handleFavorite = (product) => {
-    if (!user) return alert("Please log in to favorite");
-    alert(`Added ${product.name} to favorites`);
+  const handleFavorite = async (product) => {
+    if (!user) return alert("Please log in to add favorite");
+    const success = await addToFavorite(product.id);
+    if (success) alert(`Added ${product.name} to favorites`);
   };
 
   // Filter + search
@@ -101,9 +106,12 @@ const Products = () => {
           </div>
         </div>
 
+        {/* Display message from addToCart/addToFavorite */}
+        {message && <div className="toast-message">{message}</div>}
+
         {/* Products Grid */}
         {loading ? (
-          <p className="loading">Loading products...</p>
+          <Loading />
         ) : currentProducts.length === 0 ? (
           <p className="loading">No products found.</p>
         ) : (

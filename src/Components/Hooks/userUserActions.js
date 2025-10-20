@@ -1,9 +1,9 @@
 import { useState } from "react";
-import axios from "../api/axiosConfig";
-import useAuthContext from "../Authentication/AuthContext";
+import axios from "../../api/axiosConfig";
+import useAuthContext from "../../Authentication/AuthContext";
 
 const useUserActions = () => {
-  const { user } = useAuthContext(); 
+  const { user } = useAuthContext();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 

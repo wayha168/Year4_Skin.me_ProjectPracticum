@@ -12,12 +12,10 @@ function BagPage() {
   const [removedFromBag, setRemovedFromBag] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Fetch current user's cart
   useEffect(() => {
     const fetchCart = async () => {
       try {
         const res = await axios.get("/carts/my-cart", { withCredentials: true });
-        // The cart object has "items" as a Set, convert to array if needed
         const itemsArray = Array.isArray(res.data.data.items)
           ? res.data.data.items
           : Array.from(res.data.data.items || []);
