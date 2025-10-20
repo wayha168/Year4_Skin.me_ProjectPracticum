@@ -62,7 +62,6 @@ const Products = () => {
     if (success) alert(`Added ${product.name} to favorites`);
   };
 
-  // Filter + search
   const filteredProducts = Array.isArray(products)
     ? products
         .filter((p) => (selectedCategory ? p?.category?.id === selectedCategory : true))

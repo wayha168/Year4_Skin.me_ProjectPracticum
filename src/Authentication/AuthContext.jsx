@@ -3,6 +3,10 @@
   import axiosAuth from "../api/axiosConfig"; 
   import { useNavigate } from "react-router-dom";
   import Cookies from "js-cookie";
+import { createContext, useEffect, useState, useContext } from "react";
+import axiosAuth from "../api/axiosConfig";
+import { useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 
   const AuthContext = createContext({});
 
@@ -105,6 +109,7 @@
 
       if (token) {
         await axiosAuth.post("/auth/logout"); // token automatically added by axiosAuth
+        await axiosAuth.post("/auth/logout");
       }
     } catch (err) {
       console.error("Logout error:", err);
