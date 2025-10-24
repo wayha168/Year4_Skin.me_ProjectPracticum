@@ -8,12 +8,27 @@ const Navbar = ({ alwaysVisible = false }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuthContext();
 
+  // const [isMobile, setIsMobile] = useState(window.innerWidth <= 1030);
+
   const [prevScrollPos, setPrevScrollPos] = useState(window.scrollY);
   const [visible, setVisible] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const navRef = useRef(null);
+  
+//   useEffect(() => {
+//   const handleResize = () => setIsMobile(window.innerWidth <= 1030);
+//   window.addEventListener("resize", handleResize);
+//   return () => window.removeEventListener("resize", handleResize);
+// }, []);
 
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 1030);
+
+    useEffect(() => {
+      const handleResize = () => setIsMobile(window.innerWidth <= 1030);
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }, []);
   useEffect(() => {
     if (alwaysVisible) return;
     const handleScroll = () => {
@@ -69,13 +84,13 @@ const Navbar = ({ alwaysVisible = false }) => {
 
           {/* Navigation */}
           <div className={`nav-menu ${menuOpen ? "active" : ""}`}>
-            <Link to="/" onClick={() => safeNavigate("/")} className="nav-item">
+            <Link to="/" onClick={() => safeNavigate("/")} className="nav-item home">
               Home
             </Link>
-            <Link to="/products" onClick={() => safeNavigate("/products")} className="nav-item">
+            <Link to="/products" onClick={() => safeNavigate("/products")} className="nav-item product">
               Products
             </Link>
-            <Link to="/about-us" onClick={() => safeNavigate("/about-us")} className="nav-item">
+            <Link to="/about-us" onClick={() => safeNavigate("/about-us")} className="nav-item about_us">
               About Us
             </Link>
           </div>
@@ -103,15 +118,19 @@ const Navbar = ({ alwaysVisible = false }) => {
               </>
             )}
             {!user && (
-              <>
-                <Link to="/login" className="auth-button login-button">
-                  Login
-                </Link>
-                <Link to="/signup" className="auth-button signup-button">
-                  Sign Up
-                </Link>
-              </>
+          <>
+            {/* Login button logic */}
+            {(!isMobile || (isMobile && menuOpen)) && (
+              <Link to="/login" onClick={() => safeNavigate("/login")} className="auth-button login-button">
+                Login
+              </Link>
             )}
+            
+            <Link to="/signup" onClick={() => safeNavigate("/signup")} className="auth-button signup-button">
+              Sign Up
+            </Link>
+          </>
+        )}
           </div>
         </div>
       </nav>

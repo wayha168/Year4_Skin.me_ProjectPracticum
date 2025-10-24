@@ -1,12 +1,7 @@
-  // src/Authentication/AuthContext.jsx
-  import { createContext, useEffect, useState, useContext } from "react";
-  import axiosAuth from "../api/axiosConfig"; 
-  import { useNavigate } from "react-router-dom";
   import Cookies from "js-cookie";
 import { createContext, useEffect, useState, useContext } from "react";
 import axiosAuth from "../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
-import Cookies from "js-cookie";
 
   const AuthContext = createContext({});
 
