@@ -66,7 +66,11 @@ const FavoritePage = () => {
     return imageUrl ? `https://backend.skinme.store${imageUrl}` : ThirdImage;
   };
 
-  if (!userId) return <p className="loading">Please log in to view your favorites.</p>;
+  useEffect(() => {
+  if (!userId) {
+    navigate("/login", { state: { redirectTo: "/favorites", showLoginPopup: true } });
+  }
+}, [userId, navigate]);
 
   return (
     <>

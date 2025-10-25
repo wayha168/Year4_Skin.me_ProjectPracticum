@@ -175,3 +175,26 @@
     opacity: 0;
   }
 }
+
+/* .the-login-notification {
+  z-index: 9999;
+  position: absolute;
+  top: 3rem;
+  left: 1rem;
+  background-color: #ff0011;
+  color: white;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  animation: fadeInOut 5s ease;
+}
+
+@keyframes fadeInOut {
+  0%, 80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+} */

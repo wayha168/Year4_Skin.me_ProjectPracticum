@@ -1,21 +1,30 @@
 // src/Authentication/Login.jsx
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaFacebook, FaGoogle } from "react-icons/fa";
 import useAuthContext from "./AuthContext";
 import Loading from "../Components/Loading/Loading";
-import "./Login.css"; // ✅ Link the CSS file
 import "./Login.css";
 import MainImage from "../assets/product_homepage.png";
 
 const Login = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { login, error } = useAuthContext();
 
-  
+  const [notification, setNotification] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, error } = useAuthContext();
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+
+  // Show popup for 5s when Login page mounts if redirected from favorites
+  useEffect(() => {
+    if (location.state?.showLoginPopup) {
+      setNotification("Please login to see your favorites");
+      const timer = setTimeout(() => setNotification(""), 5000); // 5s
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -25,28 +34,43 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true); // show spinner immediately
+    setIsLoading(true);
 
     const userData = await login({ email, password });
 
     if (userData) {
-      const rolesArray = Array.isArray(userData.roles) ? userData.roles : [userData.role];
-      const isAdmin = rolesArray.includes("ROLE_ADMIN") || rolesArray.includes("ADMIN");
-      navigate(isAdmin ? "/dashboard" : "/");
+      if (location.state?.redirectTo) {
+        navigate(location.state.redirectTo);
+      } else {
+        const rolesArray = Array.isArray(userData.roles)
+          ? userData.roles
+          : [userData.role];
+        const isAdmin = rolesArray.includes("ROLE_ADMIN") || rolesArray.includes("ADMIN");
+        navigate(isAdmin ? "/dashboard" : "/");
+      }
     }
 
-    setIsLoading(false); // hide spinner after everything done
-    console.log("Login attempt finished.", userData);
+    setIsLoading(false);
   };
 
   return (
     <section className="login-section">
+      {/* Popup notification below navbar */}
+      {notification && (
+        <div className="the-login-notification">{notification}</div>
+      )}
+
       <img className="main_of_image" src={MainImage} alt="Main visual" />
-      
-      <img className="main_of_image" src={MainImage} />
+
+      {/* Show this message ONLY if redirected from favorites */}
+      {/* {location.state?.showLoginPopup && (
+        <div className="need-account">
+          <p>Please login to see your favorite</p>
+        </div>
+      )} */}
+
       <div className="login-container">
         <h1 className="login-title">Login</h1>
-
         {error && <p className="error-message">{error}</p>}
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -108,7 +132,6 @@ const Login = () => {
         </p>
       </div>
 
-      {/* ✅ Full-page loading overlay */}
       {isLoading && <Loading />}
     </section>
   );
