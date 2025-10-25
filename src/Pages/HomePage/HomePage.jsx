@@ -209,6 +209,7 @@ const HomePage = () => {
                     }
                     alt={p.name}
                     className="product-img"
+                    onClick={() => navigate("/check_out", { state: { product: p } })}
                   />
                   <button className="favorite-btn" onClick={() => handleFavoriteClick(p.id)}>
                     <FaHeart />
@@ -218,7 +219,7 @@ const HomePage = () => {
                   <h3 className="product-name">{p.name}</h3>
                   <p className="product-price">${p.price}</p>
                   <button className="add-to-cart" onClick={() => handleAddToCartClick(p.id)}>
-                    <FaCartPlus /> Add to Cart
+                    <FaCartPlus />  
                   </button>
                 </div>
               </div>

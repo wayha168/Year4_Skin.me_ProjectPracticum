@@ -57,9 +57,9 @@ const FavoritePage = () => {
     }
   };
 
-  const handleProductClick = (productId) => {
-    navigate(`/product/${productId}`);
-  };
+  const handleProductClick = (product) => {
+    navigate("/check_out", { state: { product } });
+  }
 
   const getProductImage = (product) => {
     const imageUrl = product?.images?.[0]?.downloadUrl;
@@ -99,17 +99,15 @@ const FavoritePage = () => {
                   <div className="product-info">
                     <h3 className="product-name">{product?.name}</h3>
                     <p className="product-brand">{product?.brand}</p>
-                    <p className="product-price">${product?.price?.toFixed(2)}</p>
                     <p className="product-description">
                       {product?.description || "No description available."}
                     </p>
+                    <p className="product-price">${product?.price?.toFixed(2)}</p>
+
 
                     <div className="add_to_card_and_remove">
-                      <button className="add-to-cart" onClick={() => handleProductClick(product?.id)}>
-                        View Product
-                      </button>
                       <p className="remove_favorite" onClick={() => handleRemoveFavorite(product?.id)}>
-                        Remove
+                        <i class="fa-solid fa-trash"/>
                       </p>
                     </div>
                   </div>

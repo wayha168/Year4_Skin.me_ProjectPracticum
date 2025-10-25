@@ -20,7 +20,7 @@ const Login = () => {
   // Show popup for 5s when Login page mounts if redirected from favorites
   useEffect(() => {
     if (location.state?.showLoginPopup) {
-      setNotification("Please login to see your favorites");
+      setNotification("");
       const timer = setTimeout(() => setNotification(""), 5000); // 5s
       return () => clearTimeout(timer);
     }
@@ -62,12 +62,6 @@ const Login = () => {
 
       <img className="main_of_image" src={MainImage} alt="Main visual" />
 
-      {/* Show this message ONLY if redirected from favorites */}
-      {/* {location.state?.showLoginPopup && (
-        <div className="need-account">
-          <p>Please login to see your favorite</p>
-        </div>
-      )} */}
 
       <div className="login-container">
         <h1 className="login-title">Login</h1>
