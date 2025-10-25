@@ -228,3 +228,25 @@
     gap: 1.5rem;
   }
 }
+.the-notification {
+  position: fixed;
+  top: 7.5rem;
+  right: 30px;
+  background-color: #ff0011;
+  color: white;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 10px;
+  z-index: 9999;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  animation: fadeInOut 3s ease;
+}
+
+@keyframes fadeInOut {
+  0%, 80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

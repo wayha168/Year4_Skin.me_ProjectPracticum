@@ -9,6 +9,8 @@ import "./Login.css";
 import MainImage from "../assets/product_homepage.png";
 
 const Login = () => {
+
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { login, error } = useAuthContext();

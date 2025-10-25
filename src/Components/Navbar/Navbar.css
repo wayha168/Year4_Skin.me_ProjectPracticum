@@ -255,7 +255,7 @@ dropdown {
   position: absolute;
   text-align: center;
   right: 6rem;
-  top: -21rem;
+  top: -20rem;
   opacity: 1;
   width: 8rem; /* or whatever width you want */
 }
