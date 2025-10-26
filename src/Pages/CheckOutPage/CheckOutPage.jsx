@@ -46,7 +46,11 @@ function CheckOutPage() {
           <p className="font_word hydrating">Hydrating Cream <br/><br/></p>
           <p className="font_word">${totalPrice}</p>
 
-          <div className="plus_minus_wrapper">
+
+
+
+          <div className='amount_and_buynow_wrapper'>
+            <div className="plus_minus_wrapper">
             <p
               className={`font_word plus_minus k ${quantity === 1 ? 'disabled' : ''}`}
               onClick={decreaseQuantity}
@@ -68,6 +72,12 @@ function CheckOutPage() {
             >
               Buy Now
             </p>
+          </div>
+
+
+
+
+          
           </div>
 
           <div className="lorem">

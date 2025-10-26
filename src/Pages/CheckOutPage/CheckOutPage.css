@@ -47,6 +47,16 @@
     color: #EB61A2;
     font: 600 2.5rem arial;
 }
+
+
+/* amount and buy now wrap */
+.amount_and_buynow_wrapper{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+}
 .plus_minus_wrapper{
     display: flex;
     flex-direction: row;
@@ -56,10 +66,11 @@
     width: 15rem;            /* optional: set width of container */
     height: 4rem;               /* optional: set height */
     gap: 1rem; 
-    border-radius: 30rem;
+    border-radius: 0.5rem;
     color: #EB61A1;
     user-select: none;
 }
+
 .buy_now_wrapper{
     display: flex;
     flex-direction: row;
@@ -68,9 +79,8 @@
     background: #EB61A1;     /* vertically center children */
     width: 15rem;            /* optional: set width of container */
     height: 4rem;  
-    margin-top: 1rem;
     cursor: pointer;
-    border-radius: 20rem;
+    border-radius: 0.5rem;
     user-select: none;
 }
 .buy_now_wrapper:hover{
@@ -132,7 +142,7 @@
 }
 
 .made_in{
-    margin-top: 0.6rem;
+    margin-top: 1.5rem;
     font: 1.4rem black ;
     font-weight: 600;
     font-family: Arial, Helvetica, sans-serif;

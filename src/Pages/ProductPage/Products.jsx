@@ -1,3 +1,4 @@
+// src/Pages/Products/Products.jsx
 import { useNavigate } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import axios from "../../api/axiosConfig";
@@ -8,12 +9,10 @@ import { FaCartPlus, FaHeart } from "react-icons/fa";
 import useAuthContext from "../../Authentication/AuthContext";
 import Loading from "../../Components/Loading/Loading";
 import useUserActions from "../../Components/Hooks/userUserActions";
+import LoginFirst from "../../Components/LoginFirst/LoginFirst.js";
 import "./Products.css";
 
 const Products = () => {
-  const [notification, setNotification] = useState("");
-
-
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -24,9 +23,10 @@ const Products = () => {
 
   const { user } = useAuthContext();
   const navigate = useNavigate();
-  const { addToCart, addToFavorite, message } = useUserActions();
+  const { addToCart, addToFavorite } = useUserActions();
 
-  const handleImageClick = () => navigate("/check_out");
+  // OOP Helper instance
+  const loginFirst = new LoginFirst(user, navigate);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -53,58 +53,53 @@ const Products = () => {
     fetchCategories();
   }, []);
 
-
-
-  // Add to cart
-  const handleAddToCart = async (product) => {
-  if (!user) {
-    setNotification("Please login to add to cart");
-    setTimeout(() => {
-      setNotification("");
-      navigate("/login");
-    }, 2000);
-    return;
-  }
-
-  const success = await addToCart(product.id, 1);
-    if (success) {
-      setNotification(`Added ${product.name} to cart`);
-      setTimeout(() => setNotification(""), 3000);
-    }
-  };
-  // Add to cart
-
-
-    // Add to Favorite
-    const handleFavorite = async (product) => {
+  // ====== Handlers using OOP helper ======
+  const handleAddToCart = async (productId) => {
     if (!user) {
-      setNotification("Please login to add to favorite");
-      setTimeout(() => {
-        setNotification("");
-        navigate("/login");
-      }, 2000);
+      loginFirst.redirectToCart(); // "Please log in" message
       return;
     }
 
-    const success = await addToFavorite(product.id);
+    const success = await addToCart(productId, 1);
+    if (success) loginFirst.redirectToCart(true); // "Added to bag" message
+  };
+
+  const handleFavorite = async (productId) => {
+    if (!user) {
+      // Redirect to login, then back to products page (instead of /favorites)
+      const message = loginFirst.messages.loginRequiredFavorite;
+      if (loginFirst.setNotification) {
+        loginFirst.setNotification(message);
+        setTimeout(() => loginFirst.setNotification(null), 3000);
+      }
+      loginFirst.safeNavigate("/login", {
+        state: {
+          showLoginPopup: true,
+          redirectTo: window.location.pathname, // Return to products after login
+          popupMessage: message,
+        },
+      });
+      return;
+    }
+
+    // For logged-in users: Add to favorites, show notification, but do NOT redirect
+    const success = await addToFavorite(productId);
     if (success) {
-      setNotification(`Added ${product.name} to favorites`);
-      setTimeout(() => setNotification(""), 3000);
+      const message = loginFirst.messages.addedToFavorite;
+      if (loginFirst.setNotification) {
+        loginFirst.setNotification(message);
+        setTimeout(() => loginFirst.setNotification(null), 3000);
+      }
     }
   };
-      // Add to Favorite
 
-
-
-      
-
+  // Filtered + paginated products
   const filteredProducts = Array.isArray(products)
     ? products
         .filter((p) => (selectedCategory ? p?.category?.id === selectedCategory : true))
         .filter((p) => p?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
     : [];
 
-  // Pagination
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
   const startIndex = (currentPage - 1) * productsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, startIndex + productsPerPage);
@@ -112,8 +107,6 @@ const Products = () => {
   return (
     <>
       <Navbar alwaysVisible={true} />
-      {notification && <div className="the-notification">{notification}</div>}
-
       <main className="products-section h-auto min-h-screen py-8 px-4 bg-gray-100">
         <div className="products-header py-6 px-4 flex flex-col md:flex-row md:justify-between md:items-center">
           <h1 className="product-title">Our Products</h1>
@@ -142,10 +135,6 @@ const Products = () => {
           </div>
         </div>
 
-        {/* Display message from addToCart/addToFavorite */}
-        {message && <div className="toast-message">{message}</div>}
-
-        {/* Products Grid */}
         {loading ? (
           <Loading />
         ) : currentProducts.length === 0 ? (
@@ -164,9 +153,9 @@ const Products = () => {
                       }
                       alt={p?.name || "Product Image"}
                       className="product-img"
-                      onClick={handleImageClick}
+                      onClick={() => navigate("/check_out", { state: { product: p } })}
                     />
-                    <button className="favorite-btn" onClick={() => handleFavorite(p)}>
+                    <button className="favorite-btn" onClick={() => handleFavorite(p.id)}>
                       <FaHeart />
                     </button>
                   </div>
@@ -175,7 +164,7 @@ const Products = () => {
                     <h3 className="product-name">{p?.name || "No Name"}</h3>
                     <p className="product-desc">{p?.description || "No description available"}</p>
                     <p className="product-price">${p?.price ?? "N/A"}</p>
-                    <button className="add-to-cart" onClick={() => handleAddToCart(p)}>
+                    <button className="add-to-cart" onClick={() => handleAddToCart(p.id)}>
                       <FaCartPlus />
                     </button>
                   </div>
