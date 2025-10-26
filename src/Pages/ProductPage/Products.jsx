@@ -11,6 +11,9 @@ import useUserActions from "../../Components/Hooks/userUserActions";
 import "./Products.css";
 
 const Products = () => {
+  const [notification, setNotification] = useState("");
+
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -50,17 +53,50 @@ const Products = () => {
     fetchCategories();
   }, []);
 
-  const handleAddToCart = async (product) => {
-    if (!user) return alert("Please log in to add to cart");
-    const success = await addToCart(product.id, 1);
-    if (success) alert(`Added ${product.name} to cart`);
-  };
 
-  const handleFavorite = async (product) => {
-    if (!user) return alert("Please log in to add favorite");
-    const success = await addToFavorite(product.id);
-    if (success) alert(`Added ${product.name} to favorites`);
+
+  // Add to cart
+  const handleAddToCart = async (product) => {
+  if (!user) {
+    setNotification("Please login to add to cart");
+    setTimeout(() => {
+      setNotification("");
+      navigate("/login");
+    }, 2000);
+    return;
+  }
+
+  const success = await addToCart(product.id, 1);
+    if (success) {
+      setNotification(`Added ${product.name} to cart`);
+      setTimeout(() => setNotification(""), 3000);
+    }
   };
+  // Add to cart
+
+
+    // Add to Favorite
+    const handleFavorite = async (product) => {
+    if (!user) {
+      setNotification("Please login to add to favorite");
+      setTimeout(() => {
+        setNotification("");
+        navigate("/login");
+      }, 2000);
+      return;
+    }
+
+    const success = await addToFavorite(product.id);
+    if (success) {
+      setNotification(`Added ${product.name} to favorites`);
+      setTimeout(() => setNotification(""), 3000);
+    }
+  };
+      // Add to Favorite
+
+
+
+      
 
   const filteredProducts = Array.isArray(products)
     ? products
@@ -76,6 +112,7 @@ const Products = () => {
   return (
     <>
       <Navbar alwaysVisible={true} />
+      {notification && <div className="the-notification">{notification}</div>}
 
       <main className="products-section h-auto min-h-screen py-8 px-4 bg-gray-100">
         <div className="products-header py-6 px-4 flex flex-col md:flex-row md:justify-between md:items-center">

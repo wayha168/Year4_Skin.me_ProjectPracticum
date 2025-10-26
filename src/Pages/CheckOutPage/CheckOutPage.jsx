@@ -42,8 +42,8 @@ function CheckOutPage() {
         </div>
 
         <div className="price_and_amount_wrapper">
-          <p className="skin_me">SKIN.ME</p>
-          <p className="font_word hydrating">Hydrating Cream</p>
+          {/* <p className="skin_me">SKIN.ME</p> */}
+          <p className="font_word hydrating">Hydrating Cream <br/><br/></p>
           <p className="font_word">${totalPrice}</p>
 
           <div className="plus_minus_wrapper">
@@ -76,6 +76,9 @@ function CheckOutPage() {
               healthy-looking. Designed for daily use, it restores moisture balance and strengthens your skin’s
               natural barrier for long-lasting hydration.
             </p>
+          </div>
+          <div className='made_in'>
+            <p>. Made in Korea</p>
           </div>
         </div>
       </div>

@@ -1,3 +1,5 @@
+// src/Components/Navbar/Navbar.jsx
+// src/Components/Navbar/Navbar.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthContext from "../../Authentication/AuthContext";
@@ -13,6 +15,14 @@ const Navbar = ({ alwaysVisible = false }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const navRef = useRef(null);
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1030);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 1030);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (alwaysVisible) return;
@@ -38,18 +48,55 @@ const Navbar = ({ alwaysVisible = false }) => {
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const handleLogout = () => logout();
 
-  const safeNavigate = (path) => {
+  const safeNavigate = (path, state = null) => {
     setLoading(true);
-    navigate(path);
+    if (state) {
+      navigate(path, { state });
+    } else {
+      navigate(path);
+    }
     setMenuOpen(false);
     setTimeout(() => setLoading(false), 500);
   };
+
+  // Handle favorite click
+    const handleFavoriteClick = (e) => {
+      e.preventDefault();
+      if (user) {
+        safeNavigate("/favorites");
+      } else {
+        safeNavigate("/login", {
+          state: {
+            showLoginPopup: true,
+            redirectTo: "/favorites",
+            popupMessage: "Please login to see your favorite",
+          },
+        });
+      }
+    };
+
+
+      // Handle bag click
+      const handleBagClick = (e) => {
+        e.preventDefault();
+        if (user) {
+          safeNavigate("/bag_page"); // User has account → go to bag
+        } else {
+          safeNavigate("/login", {
+            state: {
+              showLoginPopup: true,
+              redirectTo: "/bag_page",
+              popupMessage: "Please login to see your bag", // Custom message
+            },
+          });
+        }
+      };
+
 
   return (
     <>
       <nav className="navbar-wrapper" style={{ top: visible || alwaysVisible ? "0" : "-100px" }}>
         <div className="navbar-content" ref={navRef}>
-          {/* Logo */}
           <Link
             to="/"
             className="brand-logo"
@@ -62,36 +109,31 @@ const Navbar = ({ alwaysVisible = false }) => {
             <span className="brand-tagline">@Home Of Your Care</span>
           </Link>
 
-          {/* Hamburger menu */}
           <div className="main-dropdown" onClick={toggleMenu}>
             <i className="fa-solid fa-bars"></i>
           </div>
 
-          {/* Navigation */}
           <div className={`nav-menu ${menuOpen ? "active" : ""}`}>
-            <Link to="/" onClick={() => safeNavigate("/")} className="nav-item">
+            <Link to="/" onClick={() => safeNavigate("/")} className="nav-item home">
               Home
             </Link>
-            <Link to="/products" onClick={() => safeNavigate("/products")} className="nav-item">
+            <Link to="/products" onClick={() => safeNavigate("/products")} className="nav-item product">
               Products
             </Link>
-            <Link to="/about-us" onClick={() => safeNavigate("/about-us")} className="nav-item">
+            <Link to="/about-us" onClick={() => safeNavigate("/about-us")} className="nav-item about_us">
               About Us
             </Link>
           </div>
 
-          {/* Auth Menu */}
           <div className={`auth-menu ${menuOpen ? "active" : ""}`}>
-            <Link
-              to="/favorites"
-              onClick={() => safeNavigate("/favorites")}
-              className="icons nav-icon favorite"
-            >
+            <Link to="/login" onClick={handleFavoriteClick} className="icons nav-icon favorite">
               <i className="fa-solid fa-heart" />
             </Link>
-            <Link to="/bag_page" onClick={() => safeNavigate("/bag_page")} className="icons nav-icon">
+
+            <Link to="/bag_page" onClick={handleBagClick} className="icons nav-icon">
               <i className="fa-solid fa-bag-shopping" />
             </Link>
+
             {user && (
               <>
                 <Link to="/profile" onClick={() => safeNavigate("/profile")} className="icons nav-icon">
@@ -102,12 +144,15 @@ const Navbar = ({ alwaysVisible = false }) => {
                 </button>
               </>
             )}
+
             {!user && (
               <>
-                <Link to="/login" className="auth-button login-button">
-                  Login
-                </Link>
-                <Link to="/signup" className="auth-button signup-button">
+                {(!isMobile || (isMobile && menuOpen)) && (
+                  <Link to="/login" onClick={() => safeNavigate("/login")} className="auth-button login-button">
+                    Login
+                  </Link>
+                )}
+                <Link to="/signup" onClick={() => safeNavigate("/signup")} className="auth-button signup-button">
                   Sign Up
                 </Link>
               </>
@@ -115,6 +160,7 @@ const Navbar = ({ alwaysVisible = false }) => {
           </div>
         </div>
       </nav>
+
       {loading && <Loading />}
     </>
   );

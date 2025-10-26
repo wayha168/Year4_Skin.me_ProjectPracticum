@@ -1,3 +1,4 @@
+// src/Pages/HomePage/HomePage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../../Components/Navbar/Navbar.jsx";
@@ -13,6 +14,7 @@ import ThirdImage from "../../assets/third_image.png";
 import { FaCartPlus, FaHeart } from "react-icons/fa";
 
 const HomePage = () => {
+  const [notification, setNotification] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthContext();
@@ -50,17 +52,76 @@ const HomePage = () => {
     fetchProducts();
   }, []);
 
-  const handleFavoriteClick = async (productId) => {
-    if (!user) return alert("Please log in to add favorite");
-    const success = await addToFavorite(productId);
-    if (success) setTimeout(() => {}, 2000);
-  };
+  // const handleFavoriteClick = async (productId) => {
+  //   if (!user) {
+  //     // Redirect to login, passing productId and redirectTo flag
+  //     navigate("/login", { state: { productId, redirectTo: "/favorite" } });
+  //     return alert("Please log in to add favorite");
+  //   }
+  //   const success = await addToFavorite(productId);
+  //   if (success) {
+  //     setTimeout(() => {}, 2000);
+  //     navigate("/favorite", { state: { message: "Product added to favorites!" } });
+  //   }
+  // };
 
+
+
+  // add to favorite
+  const handleFavoriteClick = async (productId) => {
+  if (!user) {
+    // Show notification
+    setNotification("Please log in to add favorite");
+
+    // Hide after 3s
+    setTimeout(() => setNotification(null), 3000);
+
+    // Redirect to login after short delay
+    setTimeout(() => {
+      navigate("/login", { state: { productId, redirectTo: "/favorite" } });
+    }, 1000);
+
+    return;
+  }
+
+  const success = await addToFavorite(productId);
+  if (success) {
+    setNotification("Product added to favorites!");
+    setTimeout(() => setNotification(null), 3000);
+
+    setTimeout(() => {
+      navigate("/favorite");
+    }, 1000);
+  }
+};
+
+  // add to favorite
+
+
+
+
+
+// Add to cart
   const handleAddToCartClick = async (productId) => {
-    if (!user) return alert("Please log in to add to cart");
-    const success = await addToCart(productId, 1);
-    if (success) setTimeout(() => {}, 2000);
-  };
+  if (!user) {
+    setNotification("Please log in to add to cart");
+    setTimeout(() => setNotification(null), 3000);
+
+    setTimeout(() => {
+      navigate("/login", { state: { productId, redirectTo: "/cart" } });
+    }, 1000);
+
+    return;
+  }
+
+  const success = await addToCart(productId, 1);
+  if (success) {
+    setNotification("Product added to cart!");
+    setTimeout(() => setNotification(null), 3000);
+  }
+}
+
+// Add to cart
 
   const goToProducts = (e) => {
     e.preventDefault();
@@ -71,6 +132,7 @@ const HomePage = () => {
     <>
       <Navbar alwaysVisible={true} />
       {message && <div className="toast-message">{message}</div>}
+      {notification && <div className="the-notification">{notification}</div>}
 
       {/* ===== HERO SECTION ===== */}
       <div className="homepage_main_wrapper">
@@ -147,6 +209,7 @@ const HomePage = () => {
                     }
                     alt={p.name}
                     className="product-img"
+                    onClick={() => navigate("/check_out", { state: { product: p } })}
                   />
                   <button className="favorite-btn" onClick={() => handleFavoriteClick(p.id)}>
                     <FaHeart />
@@ -156,7 +219,7 @@ const HomePage = () => {
                   <h3 className="product-name">{p.name}</h3>
                   <p className="product-price">${p.price}</p>
                   <button className="add-to-cart" onClick={() => handleAddToCartClick(p.id)}>
-                    <FaCartPlus /> Add to Cart
+                    <FaCartPlus />  
                   </button>
                 </div>
               </div>
