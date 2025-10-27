@@ -47,9 +47,9 @@ const Sidebar = () => {
           <FaClipboardList /> <span>Orders</span>
         </Link>
 
-        <Link to="/sales-report" className={linkClass("/sales-report")}>
+        {/* <Link to="/sales-report" className={linkClass("/sales-report")}>
           <FaDollarSign /> <span>Sales</span>
-        </Link>
+        </Link> */}
         <Link to="/" className={linkClass("/homepage")}>
           <SiHomepage /> <span>Homepage</span>
         </Link>
