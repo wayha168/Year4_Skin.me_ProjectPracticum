@@ -1,5 +1,6 @@
 // FavoritePage.jsx
 import React, { useEffect, useState } from "react";
+import MessageButton from "../../Components/MessageButton/MessageButton";
 import { useNavigate } from "react-router-dom";
 import axios from "../../api/axiosConfig";
 import "./FavoritePage.css";
@@ -119,6 +120,7 @@ const FavoritePage = () => {
       </section>
         
       <Footer />
+      <MessageButton/>
     </>
   );
 };

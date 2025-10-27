@@ -66,10 +66,4 @@ export default class LoginFirst {
     this.inPageRedirect("/bag_page", message);
   }
 
-  /**
-   * Optional: Generic redirect to any path with a custom message
-   */
-  redirectTo(path, message = "Please log in to continue") {
-    this.inPageRedirect(path, message);
-  }
 }

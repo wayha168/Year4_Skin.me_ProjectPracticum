@@ -11,6 +11,7 @@ import Loading from "../../Components/Loading/Loading";
 import useUserActions from "../../Components/Hooks/userUserActions";
 import LoginFirst from "../../Components/LoginFirst/LoginFirst.js";
 import "./Products.css";
+import MessageButton from "../../Components/MessageButton/MessageButton.jsx";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -184,7 +185,6 @@ const Products = () => {
                   onClick={() => setCurrentPage(i + 1)}
                   className={currentPage === i + 1 ? "active" : ""}
                 >
-                  {i + 1}
                 </button>
               ))}
 
@@ -200,6 +200,7 @@ const Products = () => {
       </main>
 
       <Footer />
+      <MessageButton/>
     </>
   );
 };

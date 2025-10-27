@@ -6,7 +6,7 @@ import ThirdImage from "../../assets/third_image.png";
 import Navbar from "../../Components/Navbar/Navbar";
 import Footer from "../../Components/Footer/Footer";
 import axios from "../../api/axiosConfig";
-
+import MessageButton from "../../Components/MessageButton/MessageButton";
 function BagPage() {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
@@ -104,6 +104,7 @@ function BagPage() {
       </section>
 
       <Footer />
+      <MessageButton/>
     </>
   );
 }

@@ -6,6 +6,7 @@ import ImageThree from '../../assets/third_image.png';
 import ImageOne from '../../assets/first_image.png';
 import ImageTwo from '../../assets/second_image.png';
 import "./CheckOutPage.css";
+import MessageButton from '../../Components/MessageButton/MessageButton';
 // fasdfdaf
 function CheckOutPage() {
   const [quantity, setQuantity] = useState(1);
@@ -95,6 +96,7 @@ function CheckOutPage() {
 
       <Navbar />
       <Footer />
+      <MessageButton/>
     </>
   );
 }

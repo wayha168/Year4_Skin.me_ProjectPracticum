@@ -17,6 +17,7 @@ import ScrollToTop from "./Components/ScrollToTop/ScrollToTop";
 import CheckOutPage from "./Pages/CheckOutPage/CheckOutPage";
 import BagPage from "./Pages/BagPage/BagPage";
 import ErrorBoundary from "./Components/ErrorBoundary/ErrorBoundary";
+import MessageButton from "./Components/MessageButton/MessageButton";
 
 function App() {
   return (
