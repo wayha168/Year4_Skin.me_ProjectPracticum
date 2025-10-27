@@ -7,6 +7,7 @@ import Navbar from "../../Components/Navbar/Navbar";
 import Footer from "../../Components/Footer/Footer";
 import useAuthContext from "../../Authentication/AuthContext";
 import ThirdImage from "../../assets/third_image.png";
+import MessageWidget from "../../Components/MessageWidget/MessageWidget";
 
 const FavoritePage = () => {
   const [favorites, setFavorites] = useState([]);
@@ -119,6 +120,7 @@ const FavoritePage = () => {
       </section>
         
       <Footer />
+      <MessageWidget/>
     </>
   );
 };

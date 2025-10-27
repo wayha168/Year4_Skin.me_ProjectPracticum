@@ -12,16 +12,20 @@ import FirstImage from "../../assets/first_image.png";
 import SecondImage from "../../assets/second_image.png";
 import ThirdImage from "../../assets/third_image.png";
 import { FaCartPlus, FaHeart } from "react-icons/fa";
+import LoginFirst from "../../Components/LoginFirst/LoginFirst.js";
+import MessageWidget from "../../Components/MessageWidget/MessageWidget.jsx";
 
 const HomePage = () => {
-  const [notification, setNotification] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthContext();
 
-  const { addToCart, addToFavorite, message } = useUserActions();
+  const { addToCart, addToFavorite } = useUserActions();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Instantiate OOP helper
+  const loginFirst = new LoginFirst(user, navigate);
 
   const scrollToProducts = () => {
     const section = document.getElementById("product");
@@ -33,9 +37,7 @@ const HomePage = () => {
   };
 
   useEffect(() => {
-    if (location.state?.scrollTo === "product") {
-      scrollToProducts();
-    }
+    if (location.state?.scrollTo === "product") scrollToProducts();
   }, [location]);
 
   useEffect(() => {
@@ -52,77 +54,66 @@ const HomePage = () => {
     fetchProducts();
   }, []);
 
-  // const handleFavoriteClick = async (productId) => {
-  //   if (!user) {
-  //     // Redirect to login, passing productId and redirectTo flag
-  //     navigate("/login", { state: { productId, redirectTo: "/favorite" } });
-  //     return alert("Please log in to add favorite");
-  //   }
-  //   const success = await addToFavorite(productId);
-  //   if (success) {
-  //     setTimeout(() => {}, 2000);
-  //     navigate("/favorite", { state: { message: "Product added to favorites!" } });
-  //   }
-  // };
-
-
-
-  // add to favorite
+  // ===== Handlers using LoginFirst OOP =====
   const handleFavoriteClick = async (productId) => {
-  if (!user) {
-    // Show notification
-    setNotification("Please log in to add favorite");
+    if (!user) {
+      // Redirect to login, then back to homepage (instead of /favorites)
+      const message = loginFirst.messages.loginRequiredFavorite;
+      if (loginFirst.setNotification) {
+        loginFirst.setNotification(message);
+        setTimeout(() => loginFirst.setNotification(null), 3000);
+      }
+      loginFirst.safeNavigate("/login", {
+        state: {
+          showLoginPopup: true,
+          redirectTo: window.location.pathname, // Return to homepage after login
+          popupMessage: message,
+        },
+      });
+      return;
+    }
 
-    // Hide after 3s
-    setTimeout(() => setNotification(null), 3000);
+    // For logged-in users: Add to favorites, show notification, but do NOT redirect
+    const success = await addToFavorite(productId);
+    if (success) {
+      const message = loginFirst.messages.addedToFavorite;
+      if (loginFirst.setNotification) {
+        loginFirst.setNotification(message);
+        setTimeout(() => loginFirst.setNotification(null), 3000);
+      }
+    }
+  };
 
-    // Redirect to login after short delay
-    setTimeout(() => {
-      navigate("/login", { state: { productId, redirectTo: "/favorite" } });
-    }, 1000);
-
-    return;
-  }
-
-  const success = await addToFavorite(productId);
-  if (success) {
-    setNotification("Product added to favorites!");
-    setTimeout(() => setNotification(null), 3000);
-
-    setTimeout(() => {
-      navigate("/favorite");
-    }, 1000);
-  }
-};
-
-  // add to favorite
-
-
-
-
-
-// Add to cart
   const handleAddToCartClick = async (productId) => {
-  if (!user) {
-    setNotification("Please log in to add to cart");
-    setTimeout(() => setNotification(null), 3000);
+    if (!user) {
+      // Redirect to login, then back to homepage (instead of /bag_page)
+      const message = loginFirst.messages.loginRequiredCart;
+      if (loginFirst.setNotification) {
+        loginFirst.setNotification(message);
+        setTimeout(() => loginFirst.setNotification(null), 3000);
+      }
+      loginFirst.safeNavigate("/login", {
+        state: {
+          showLoginPopup: true,
+          redirectTo: window.location.pathname, // Return to homepage after login
+          popupMessage: message,
+        },
+      });
+      return;
+    }
 
-    setTimeout(() => {
-      navigate("/login", { state: { productId, redirectTo: "/cart" } });
-    }, 1000);
+    // For logged-in users: Add to cart, show notification, but do NOT redirect
+    const success = await addToCart(productId, 1);
+    if (success) {
+      const message = loginFirst.messages.addedToCart;
+      if (loginFirst.setNotification) {
+        loginFirst.setNotification(message);
+        setTimeout(() => loginFirst.setNotification(null), 3000);
+      }
+    }
+  };
 
-    return;
-  }
-
-  const success = await addToCart(productId, 1);
-  if (success) {
-    setNotification("Product added to cart!");
-    setTimeout(() => setNotification(null), 3000);
-  }
-}
-
-// Add to cart
-
+  // Scroll to products section
   const goToProducts = (e) => {
     e.preventDefault();
     scrollToProducts();
@@ -131,8 +122,6 @@ const HomePage = () => {
   return (
     <>
       <Navbar alwaysVisible={true} />
-      {message && <div className="toast-message">{message}</div>}
-      {notification && <div className="the-notification">{notification}</div>}
 
       {/* ===== HERO SECTION ===== */}
       <div className="homepage_main_wrapper">
@@ -161,26 +150,23 @@ const HomePage = () => {
         </div>
         <div className="round_purple second"></div>
       </div>
+
+      {/* ===== OVERVIEW SECTION ===== */}
       <div className="main_overview_wrapper">
-        {" "}
         <div className="mini_overview_wrapper">
-          {" "}
-          <div className="let_have_a">Let's Have A Look</div>{" "}
+          <div className="let_have_a">Let's Have A Look</div>
           <div className="this_is_the_overview">
-            {" "}
-            This is the overview about our products that you can spent few minutes to see how it look.{" "}
-          </div>{" "}
+            This is the overview about our products that you can spend a few minutes to see how they look.
+          </div>
           <div className="the_two_images">
-            {" "}
-            <img className="first_image" src={FirstImage} />{" "}
-            <img className="second_image" src={SecondImage} />{" "}
-          </div>{" "}
-        </div>{" "}
+            <img className="first_image" src={FirstImage} />
+            <img className="second_image" src={SecondImage} />
+          </div>
+        </div>
         <div className="big_single_image">
-          {" "}
-          <img className="third_image" src={ThirdImage} />{" "}
-        </div>{" "}
-        <div className="round_purple third"></div>{" "}
+          <img className="third_image" src={ThirdImage} />
+        </div>
+        <div className="round_purple third"></div>
       </div>
 
       {/* ===== PRODUCTS SECTION ===== */}
@@ -246,6 +232,7 @@ const HomePage = () => {
       </div>
 
       <Footer />
+      <MessageWidget/>
     </>
   );
 };

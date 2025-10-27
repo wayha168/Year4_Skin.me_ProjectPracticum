@@ -6,6 +6,8 @@ import ThirdImage from "../../assets/third_image.png";
 import Navbar from "../../Components/Navbar/Navbar";
 import Footer from "../../Components/Footer/Footer";
 import axios from "../../api/axiosConfig";
+import MessageWidget from "../../Components/MessageWidget/MessageWidget";
+
 
 function BagPage() {
   const navigate = useNavigate();
@@ -104,6 +106,8 @@ function BagPage() {
       </section>
 
       <Footer />
+       <MessageWidget/>
+
     </>
   );
 }

@@ -7,6 +7,7 @@ import { FaUserCircle } from "react-icons/fa";
 import Loading from "../../Components/Loading/Loading";
 import axios from "../../api/axiosConfig"; // your axios instance
 import "./ProfilePage.css";
+import MessageWidget from "../../Components/MessageWidget/MessageWidget";
 
 const ProfilePage = () => {
   const { user: authUser } = useAuthContext(); // user from context (usually has id)
@@ -92,6 +93,8 @@ const ProfilePage = () => {
         </div>
       </main>
       <Footer />
+      <MessageWidget/>
+      
     </>
   );
 };

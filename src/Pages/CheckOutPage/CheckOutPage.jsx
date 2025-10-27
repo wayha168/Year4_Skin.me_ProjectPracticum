@@ -6,6 +6,7 @@ import ImageThree from '../../assets/third_image.png';
 import ImageOne from '../../assets/first_image.png';
 import ImageTwo from '../../assets/second_image.png';
 import "./CheckOutPage.css";
+import MessageButton from '../../Components/MessageButton/MessageButton';
 // fasdfdaf
 function CheckOutPage() {
   const [quantity, setQuantity] = useState(1);
@@ -46,7 +47,11 @@ function CheckOutPage() {
           <p className="font_word hydrating">Hydrating Cream <br/><br/></p>
           <p className="font_word">${totalPrice}</p>
 
-          <div className="plus_minus_wrapper">
+
+
+
+          <div className='amount_and_buynow_wrapper'>
+            <div className="plus_minus_wrapper">
             <p
               className={`font_word plus_minus k ${quantity === 1 ? 'disabled' : ''}`}
               onClick={decreaseQuantity}
@@ -70,6 +75,12 @@ function CheckOutPage() {
             </p>
           </div>
 
+
+
+
+          
+          </div>
+
           <div className="lorem">
             <p>
               SKIN.ME Hydrating Cream deeply nourishes and refreshes your skin, leaving it soft, smooth, and
@@ -85,6 +96,7 @@ function CheckOutPage() {
 
       <Navbar />
       <Footer />
+      <MessageButton/>
     </>
   );
 }

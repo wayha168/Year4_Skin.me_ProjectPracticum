@@ -1,40 +1,45 @@
-// src/Components/Navbar/Navbar.jsx
-// src/Components/Navbar/Navbar.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthContext from "../../Authentication/AuthContext";
 import Loading from "../Loading/Loading";
 import "./Navbar.css";
+import LoginFirst from "../LoginFirst/LoginFirst"; // OOP class for login redirection logic
 
 const Navbar = ({ alwaysVisible = false }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuthContext();
 
-  const [prevScrollPos, setPrevScrollPos] = useState(window.scrollY);
+  // ---------- UI State ----------
   const [visible, setVisible] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1030);
   const navRef = useRef(null);
 
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1030);
-
+  // ---------- Handle Window Resize ----------
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 1030);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // ---------- Navbar Show/Hide on Scroll (fixed) ----------
   useEffect(() => {
     if (alwaysVisible) return;
+
+    let prevScroll = window.scrollY;
+
     const handleScroll = () => {
-      const currentScrollPos = window.scrollY;
-      setVisible(prevScrollPos > currentScrollPos || currentScrollPos < 10);
-      setPrevScrollPos(currentScrollPos);
+      const currentScroll = window.scrollY;
+      setVisible(prevScroll > currentScroll || currentScroll < 10);
+      prevScroll = currentScroll;
     };
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [prevScrollPos, alwaysVisible]);
+  }, [alwaysVisible]);
 
+  // ---------- Click Outside Closes Menu ----------
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (navRef.current && !navRef.current.contains(event.target)) {
@@ -45,58 +50,43 @@ const Navbar = ({ alwaysVisible = false }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // ---------- Menu Toggle ----------
   const toggleMenu = () => setMenuOpen(!menuOpen);
+
+  // ---------- Logout ----------
   const handleLogout = () => logout();
 
+  // ---------- Safe Navigation with Loading ----------
   const safeNavigate = (path, state = null) => {
     setLoading(true);
-    if (state) {
-      navigate(path, { state });
-    } else {
-      navigate(path);
-    }
+    if (state) navigate(path, { state });
+    else navigate(path);
     setMenuOpen(false);
     setTimeout(() => setLoading(false), 500);
   };
 
-  // Handle favorite click
-    const handleFavoriteClick = (e) => {
-      e.preventDefault();
-      if (user) {
-        safeNavigate("/favorites");
-      } else {
-        safeNavigate("/login", {
-          state: {
-            showLoginPopup: true,
-            redirectTo: "/favorites",
-            popupMessage: "Please login to see your favorite",
-          },
-        });
-      }
-    };
+  // ---------- Instantiate OOP Login Redirect Handler ----------
+  const loginFirst = new LoginFirst(user, safeNavigate);
 
+  // ---------- Redirect Handlers ----------
+  const handleFavoriteClick = (e) => {
+    e.preventDefault();
+    loginFirst.redirectToFavorites(); // handled by OOP
+  };
 
-      // Handle bag click
-      const handleBagClick = (e) => {
-        e.preventDefault();
-        if (user) {
-          safeNavigate("/bag_page"); // User has account → go to bag
-        } else {
-          safeNavigate("/login", {
-            state: {
-              showLoginPopup: true,
-              redirectTo: "/bag_page",
-              popupMessage: "Please login to see your bag", // Custom message
-            },
-          });
-        }
-      };
-
+  const handleBagClick = (e) => {
+    e.preventDefault();
+    loginFirst.redirectToCart(); // handled by OOP
+  };
 
   return (
     <>
-      <nav className="navbar-wrapper" style={{ top: visible || alwaysVisible ? "0" : "-100px" }}>
+      <nav
+        className="navbar-wrapper"
+        style={{ top: visible || alwaysVisible ? "0" : "-100px" }}
+      >
         <div className="navbar-content" ref={navRef}>
+          {/* ---------- Brand ---------- */}
           <Link
             to="/"
             className="brand-logo"
@@ -109,50 +99,92 @@ const Navbar = ({ alwaysVisible = false }) => {
             <span className="brand-tagline">@Home Of Your Care</span>
           </Link>
 
+          {/* ---------- Hamburger Menu ---------- */}
           <div className="main-dropdown" onClick={toggleMenu}>
             <i className="fa-solid fa-bars"></i>
           </div>
 
+          {/* ---------- Navigation Links ---------- */}
           <div className={`nav-menu ${menuOpen ? "active" : ""}`}>
-            <Link to="/" onClick={() => safeNavigate("/")} className="nav-item home">
+            <Link
+              to="/"
+              onClick={() => safeNavigate("/")}
+              className="nav-item home"
+            >
               Home
             </Link>
-            <Link to="/products" onClick={() => safeNavigate("/products")} className="nav-item product">
+            <Link
+              to="/products"
+              onClick={() => safeNavigate("/products")}
+              className="nav-item product"
+            >
               Products
             </Link>
-            <Link to="/about-us" onClick={() => safeNavigate("/about-us")} className="nav-item about_us">
+            <Link
+              to="/about-us"
+              onClick={() => safeNavigate("/about-us")}
+              className="nav-item about_us"
+            >
               About Us
             </Link>
           </div>
 
+          {/* ---------- Auth / User Menu ---------- */}
           <div className={`auth-menu ${menuOpen ? "active" : ""}`}>
-            <Link to="/login" onClick={handleFavoriteClick} className="icons nav-icon favorite">
+            {/* Favorite (uses OOP redirect) */}
+            <Link
+              to="/favorites"
+              onClick={handleFavoriteClick}
+              className="icons nav-icon favorite"
+            >
               <i className="fa-solid fa-heart" />
             </Link>
 
-            <Link to="/bag_page" onClick={handleBagClick} className="icons nav-icon">
+            {/* Bag (uses OOP redirect) */}
+            <Link
+              to="/bag_page"
+              onClick={handleBagClick}
+              className="icons nav-icon"
+            >
               <i className="fa-solid fa-bag-shopping" />
             </Link>
 
+            {/* ---------- User Logged In ---------- */}
             {user && (
               <>
-                <Link to="/profile" onClick={() => safeNavigate("/profile")} className="icons nav-icon">
+                <Link
+                  to="/profile"
+                  onClick={() => safeNavigate("/profile")}
+                  className="icons nav-icon"
+                >
                   <i className="fa-solid fa-user" />
                 </Link>
-                <button onClick={handleLogout} className="auth_button logout_button">
+                <button
+                  onClick={handleLogout}
+                  className="auth_button logout_button"
+                >
                   Logout
                 </button>
               </>
             )}
 
+            {/* ---------- User Not Logged In ---------- */}
             {!user && (
               <>
                 {(!isMobile || (isMobile && menuOpen)) && (
-                  <Link to="/login" onClick={() => safeNavigate("/login")} className="auth-button login-button">
+                  <Link
+                    to="/login"
+                    onClick={() => safeNavigate("/login")}
+                    className="auth-button login-button"
+                  >
                     Login
                   </Link>
                 )}
-                <Link to="/signup" onClick={() => safeNavigate("/signup")} className="auth-button signup-button">
+                <Link
+                  to="/signup"
+                  onClick={() => safeNavigate("/signup")}
+                  className="auth-button signup-button"
+                >
                   Sign Up
                 </Link>
               </>
@@ -161,6 +193,7 @@ const Navbar = ({ alwaysVisible = false }) => {
         </div>
       </nav>
 
+      {/* ---------- Loading Indicator ---------- */}
       {loading && <Loading />}
     </>
   );
