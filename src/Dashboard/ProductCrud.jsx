@@ -152,7 +152,10 @@ const ProductCrud = () => {
 
     try {
       await axios.post("/images/upload", formData, {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
       setImageModalOpen(false);
       fetchProducts(); // refresh products to show updated images
