@@ -2,7 +2,9 @@ import Navbar from "../../Components/Navbar/Navbar";
 import Footer from "../../Components/Footer/Footer";
 import "./AboutUsPage.css";
 import TeamImage from "../../assets/second_image.png";
-import MessageButton from "../../Components/MessageButton/MessageButton";
+// import MessageButton from "../../Components/MessageButton/MessageButton";
+// import MessageInput from "../../Components/MessageInput/MessageInput";
+import MessageWidget from "../../Components/MessageWidget/MessageWidget";
 const AboutUsPage = () => {
   return (
     <>
@@ -22,7 +24,9 @@ const AboutUsPage = () => {
         </div>
       </div>
       <Footer />
-      <MessageButton/>
+      {/* <MessageButton/> */}
+      {/* <MessageInput/> */}
+      <MessageWidget/>
     </>
   );
 };

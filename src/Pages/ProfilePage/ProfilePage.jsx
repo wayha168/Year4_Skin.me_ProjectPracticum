@@ -1,4 +1,3 @@
-import MessageButton from "../../Components/MessageButton/MessageButton";
 import React, { useEffect, useState } from "react";
 import Navbar from "../../Components/Navbar/Navbar";
 import Footer from "../../Components/Footer/Footer";
@@ -8,6 +7,7 @@ import { FaUserCircle } from "react-icons/fa";
 import Loading from "../../Components/Loading/Loading";
 import axios from "../../api/axiosConfig"; // your axios instance
 import "./ProfilePage.css";
+import MessageWidget from "../../Components/MessageWidget/MessageWidget";
 
 const ProfilePage = () => {
   const { user: authUser } = useAuthContext(); // user from context (usually has id)
@@ -93,7 +93,8 @@ const ProfilePage = () => {
         </div>
       </main>
       <Footer />
-      <MessageButton/>
+      <MessageWidget/>
+      
     </>
   );
 };

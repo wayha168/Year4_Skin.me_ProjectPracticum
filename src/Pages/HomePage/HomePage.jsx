@@ -13,7 +13,7 @@ import SecondImage from "../../assets/second_image.png";
 import ThirdImage from "../../assets/third_image.png";
 import { FaCartPlus, FaHeart } from "react-icons/fa";
 import LoginFirst from "../../Components/LoginFirst/LoginFirst.js";
-import MessageButton from "../../Components/MessageButton/MessageButton.jsx";
+import MessageWidget from "../../Components/MessageWidget/MessageWidget.jsx";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -232,7 +232,7 @@ const HomePage = () => {
       </div>
 
       <Footer />
-      <MessageButton/>
+      <MessageWidget/>
     </>
   );
 };
