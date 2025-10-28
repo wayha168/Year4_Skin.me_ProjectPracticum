@@ -140,7 +140,7 @@ const MessageWidget = () => {
             </div>
             <div className="bubble-content">
               <FaSpinner className="spinner" />
-              <span>Thinking…</span>
+              <span>Answer…</span>
             </div>
           </div>
         )}
