@@ -68,7 +68,7 @@
     gap: 1rem; 
     border-radius: 0.5rem;
     color: #EB61A1;
-    user-select: none;
+    /* user-select: none; */
 }
 
 .buy_now_wrapper{
