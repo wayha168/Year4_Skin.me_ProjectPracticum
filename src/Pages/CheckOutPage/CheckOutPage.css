@@ -81,7 +81,7 @@
     height: 4rem;  
     cursor: pointer;
     border-radius: 0.5rem;
-    user-select: none;
+    /* user-select: none; */
 }
 .buy_now_wrapper:hover{
     transition: 0.3s;

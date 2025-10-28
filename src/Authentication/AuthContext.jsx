@@ -113,11 +113,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const isAdmin = () => {
+    if (!user) return false;
+    const roles = Array.isArray(user.roles) ? user.roles : [user.role].filter(Boolean);
+    return roles.some((r) => r === "ROLE_ADMIN" || r === "ADMIN");
+  };
+
   return (
-    <AuthContext.Provider value={{ user, error, login, signup, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, error, login, signup, logout, isAdmin }}>{children}</AuthContext.Provider>
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export default function useAuthContext() {
   return useContext(AuthContext);
 }

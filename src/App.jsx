@@ -17,6 +17,7 @@ import ScrollToTop from "./Components/ScrollToTop/ScrollToTop";
 import CheckOutPage from "./Pages/CheckOutPage/CheckOutPage";
 import BagPage from "./Pages/BagPage/BagPage";
 import ErrorBoundary from "./Components/ErrorBoundary/ErrorBoundary";
+import { UserControl } from "./Dashboard/UserController";
 // import MessageButton from "./Components/MessageButton/MessageButton";
 
 function App() {
@@ -45,6 +46,7 @@ function App() {
           <Route path="/order-control" element={<OrderControl />} />
           <Route path="/image-crud" element={<ImageCrud />} />
           <Route path="/category-crud" element={<CategoryCrud />} />
+          <Route path="/user-control" element={<UserControl />} />
 
           {/* Redirects */}
           <Route path="/home" element={<Navigate to="/" replace />} />

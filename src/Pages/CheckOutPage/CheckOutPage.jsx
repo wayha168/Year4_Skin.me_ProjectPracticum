@@ -5,12 +5,12 @@ import Footer from '../../Components/Footer/Footer';
 import ImageThree from '../../assets/third_image.png';
 import ImageOne from '../../assets/first_image.png';
 import ImageTwo from '../../assets/second_image.png';
+import MessageButton from "../../Components/MessageWidget/MessageWidget";
 import "./CheckOutPage.css";
-// import MessageButton from '../../Components/MessageButton/MessageButton.css';
-// fasdfdaf
+
 function CheckOutPage() {
   const [quantity, setQuantity] = useState(1);
-  const [showPopup, setShowPopup] = useState(false); // ✅ popup state
+  const [showPopup, setShowPopup] = useState(false);
   const pricePerItem = 9.99;
 
   const increaseQuantity = () => setQuantity(prev => prev + 1);

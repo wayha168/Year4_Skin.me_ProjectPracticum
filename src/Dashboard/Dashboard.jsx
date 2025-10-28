@@ -3,6 +3,7 @@ import axios from "../api/axiosConfig";
 import Sidebar from "../Components/Sidebar/Sidebar";
 import Cookies from "js-cookie";
 import { ShoppingCart, TrendingUp, DollarSign, Package } from "lucide-react"; // modern icons
+import HeaderWithRole from "../Components/Hooks/HeaderWithRole";
 
 const fetchSalesRecords = async () => {
   const token = Cookies.get("token");
@@ -54,16 +55,16 @@ const Dashboard = () => {
   const totalSales = salesRecords.reduce((sum, p) => sum + (p.price || 0) * (p.quantitySold || 0), 0);
   const totalQuantity = salesRecords.reduce((sum, p) => sum + (p.quantitySold || 0), 0);
 
-  const addToCart = (product) => {
-    alert(`${product.name} added to cart!`);
-  };
-
   return (
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
 
       <main className="flex-1 p-8 space-y-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-4">Dashboard Overview</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-semibold text-gray-800">User Management</h1>
+          <HeaderWithRole />
+        </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -121,7 +122,7 @@ const Dashboard = () => {
                     <th className="px-6 py-3 text-left">Price</th>
                     <th className="px-6 py-3 text-left">Quantity Sold</th>
                     <th className="px-6 py-3 text-left">Total</th>
-                    <th className="px-6 py-3 text-left">Action</th>
+                    <th className="px-6 py-3 text-left">Total Sale</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -134,13 +135,11 @@ const Dashboard = () => {
                       <td className="px-6 py-4 font-semibold">
                         ${(product.price * product.quantitySold || 0).toFixed(2)}
                       </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => addToCart(product)}
-                          className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition"
-                        >
-                          Add to Cart
-                        </button>
+                      <td className="px-6 py-4 font-semibold text-green-600">
+                        $
+                        {product.price && product.quantitySold
+                          ? (product.price * product.quantitySold).toFixed(2)
+                          : "0.00"}
                       </td>
                     </tr>
                   ))}
