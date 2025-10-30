@@ -75,20 +75,32 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (data) => {
     try {
-      const response = await axiosAuth.post("/auth/signup", { ...data, role: "user", is_active: 1 });
+      setError("");
+      const response = await axiosAuth.post("/auth/signup", {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
+        confirmPassword: data.password, 
+      });
 
-      if (response.status === 200 && response.data?.data?.jwtToken) {
-        const token = response.data.data.jwtToken;
-        Cookies.set("token", token, { expires: 7 });
-        localStorage.setItem("token", token);
-        await fetchUser(token);
-        navigate("/");
+      console.log("Signup response:", response.data);
+
+      if (response.status === 200 || response.status === 201) {
+        const userData = await login({
+          email: data.email,
+          password: data.password,
+        });
+        return userData;
       } else {
         setError(response.data?.message || "Signup failed");
+        return null;
       }
     } catch (err) {
       console.error("Signup error:", err.response || err);
-      setError("Network error");
+      const message = err.response?.data?.message || "Network error during signup";
+      setError(message);
+      return null;
     }
   };
 
@@ -120,7 +132,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, error, login, signup, logout, isAdmin }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, error, login, signup, logout, isAdmin }}>
+      {children}
+    </AuthContext.Provider>
   );
 };
 
