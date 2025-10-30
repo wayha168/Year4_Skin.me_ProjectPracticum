@@ -1,4 +1,3 @@
-// FavoritePage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../../api/axiosConfig";
@@ -18,7 +17,14 @@ const FavoritePage = () => {
   const navigate = useNavigate();
   const userId = user?.id;
 
-  // Fetch favorites
+  useEffect(() => {
+    if (!userId) {
+      navigate("/login", {
+        state: { redirectTo: "/favorites", showLoginPopup: true },
+      });
+    }
+  }, [userId, navigate]);
+
   useEffect(() => {
     if (!userId) {
       setLoading(false);
@@ -27,11 +33,14 @@ const FavoritePage = () => {
 
     const fetchFavorites = async () => {
       try {
-        const res = await axios.get(`/favorites/user/${userId}`, { withCredentials: true });
-        setFavorites(res?.data?.data || []);
-        console.log("Fetched favorites:", res?.data?.data || []);
+        const { data } = await axios.get(`/favorites/user/${userId}`, {
+          withCredentials: true,
+        });
+        setFavorites(data?.data || []);
       } catch (err) {
         console.error("Error fetching favorites:", err);
+        setNotification("Failed to load favorites");
+        setTimeout(() => setNotification(""), 3000);
       } finally {
         setLoading(false);
       }
@@ -40,42 +49,43 @@ const FavoritePage = () => {
     fetchFavorites();
   }, [userId]);
 
-  // Remove favorite
   const handleRemoveFavorite = async (productId) => {
-    if (!userId) return alert("Please log in to remove favorite");
+    if (!userId) return;
 
     try {
-      await axios.delete(`/favorites/remove`, {
+      await axios.delete("/favorites/remove", {
         params: { userId, productId },
         withCredentials: true,
       });
-      setFavorites((prev) => prev.filter((fav) => fav.product.id !== productId));
+
+      setFavorites((prev) => prev.filter((f) => f.product.id !== productId));
       setNotification("Removed from favorites");
       setTimeout(() => setNotification(""), 2000);
     } catch (err) {
       console.error("Error removing favorite:", err);
-      alert("Failed to remove favorite");
+      setNotification("Failed to remove favorite");
+      setTimeout(() => setNotification(""), 3000);
     }
   };
 
-  const handleProductClick = (product) => {
-    navigate("/check_out", { state: { product } });
-  }
-
-  const getProductImage = (product) => {
-    const imageUrl = product?.images?.[0]?.downloadUrl;
-    return imageUrl ? `https://backend.skinme.store${imageUrl}` : ThirdImage;
+  const handleProductClick = (productId) => {
+    navigate("/check_out", { state: { productId } });
   };
 
-  useEffect(() => {
-  if (!userId) {
-    navigate("/login", { state: { redirectTo: "/favorites", showLoginPopup: true } });
-  }
-}, [userId, navigate]);
+  /** Build a safe image URL like BagPage */
+  const getProductImage = (fav) => {
+    const imageUrl = fav?.productThumbnailUrl || fav?.product?.images?.[0]?.downloadUrl;
+
+    return imageUrl
+      ? `https://backend.skinme.store${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`
+      : ThirdImage;
+  };
 
   return (
     <>
       <Navbar />
+
+      {/* Notification toast */}
       {notification && <div className="remove_bag_alert">{notification}</div>}
 
       <section className="products-section h-auto min-h-screen py-8 px-4 bg-gray-100">
@@ -83,32 +93,52 @@ const FavoritePage = () => {
           <h1 className="favorite-title">My Favorites</h1>
         </div>
 
+        {/* Loading */}
         {loading ? (
-          <p className="loading">Loading your favorites...</p>
+          <p className="loading text-center">
+            <i className="fa fa-spinner fa-spin mr-2" />
+            Loading your favorites...
+          </p>
         ) : favorites.length === 0 ? (
-          <p className="loading">You have no favorite products.</p>
+          <p className="loading text-center">You have no favorite products yet.</p>
         ) : (
           <div className="products-grid">
             {favorites.map((fav) => {
               const product = fav.product;
+              if (!product) return null;
+
               return (
-                <div className="product-card" key={product?.id}>
-                  <div className="product-img-container" onClick={() => handleProductClick(product?.id)}>
-                    <img src={getProductImage(product)} alt={product?.name} className="product-img" />
+                <div className="product-card" key={product.id}>
+                  {/* Product Image */}
+                  <div
+                    className="product-img-container cursor-pointer"
+                    onClick={() => handleProductClick(product.id)}
+                  >
+                    <img
+                      src={getProductImage(fav)}
+                      alt={product.name}
+                      className="product-img"
+                      loading="lazy"
+                      onError={(e) => (e.currentTarget.src = ThirdImage)}
+                    />
                   </div>
 
+                  {/* Product Info */}
                   <div className="product-info">
-                    <h3 className="product-name">{product?.name}</h3>
-                    <p className="product-brand">{product?.brand}</p>
+                    <h3 className="product-name">{product.name}</h3>
+                    <p className="product-brand">{product.brand}</p>
                     <p className="product-description">
-                      {product?.description || "No description available."}
+                      {product.description || "No description available."}
                     </p>
-                    <p className="product-price">${product?.price?.toFixed(2)}</p>
-
+                    <p className="product-price">${Number(product.price ?? 0).toFixed(2)}</p>
 
                     <div className="add_to_card_and_remove">
-                      <p className="remove_favorite" onClick={() => handleRemoveFavorite(product?.id)}>
-                        <i class="fa-solid fa-trash"/>
+                      <p
+                        className="remove_favorite"
+                        onClick={() => handleRemoveFavorite(product.id)}
+                        title="Remove from favorites"
+                      >
+                        <i className="fa-solid fa-trash" />
                       </p>
                     </div>
                   </div>
@@ -118,9 +148,9 @@ const FavoritePage = () => {
           </div>
         )}
       </section>
-        
+
       <Footer />
-      <MessageWidget/>
+      <MessageWidget />
     </>
   );
 };
