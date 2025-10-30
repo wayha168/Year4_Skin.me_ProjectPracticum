@@ -18,12 +18,10 @@ const MessageWidget = () => {
   const { user } = useAuthContext();
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Welcome message on first open
   useEffect(() => {
     if (showInput && messages.length === 0) {
       const welcome = {
@@ -35,7 +33,6 @@ const MessageWidget = () => {
     }
   }, [showInput, messages.length]);
 
-  // Send to Spring Boot (plain text)
   const handleSend = async () => {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
