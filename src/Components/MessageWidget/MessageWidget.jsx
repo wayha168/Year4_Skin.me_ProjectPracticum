@@ -9,6 +9,9 @@ import "./MessageButton.css";
 const WELCOME_MESSAGE =
   "Hello! This is **SkinMe Assistant** – your personal skincare advisor. How can I help you today?";
 
+const BACKEND_URL = "https://backend.skinme.store"; // your backend
+const FRONTEND_URL = "https://skinme.store"; // your frontend
+
 const MessageWidget = () => {
   const [showInput, setShowInput] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -33,6 +36,12 @@ const MessageWidget = () => {
     }
   }, [showInput, messages.length]);
 
+  // Ensure links open in new tab
+  useEffect(() => {
+    const links = document.querySelectorAll(".message-text a");
+    links.forEach((link) => link.setAttribute("target", "_blank"));
+  }, [messages]);
+
   const handleSend = async () => {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
@@ -53,7 +62,12 @@ const MessageWidget = () => {
         timeout: 30_000,
       });
 
-      const aiText = (res.data || "").trim() || "I couldn't find a matching product.";
+      let aiText = (res.data || "").trim() || "I couldn't find a matching product.";
+
+      // Fix relative URLs to absolute URLs
+      aiText = aiText
+        .replace(/src="\/api\/v1\/images/g, `src="${BACKEND_URL}/api/v1/images`)
+        .replace(/href="\/products/g, `href="${FRONTEND_URL}/products`);
 
       const assistantMsg = {
         role: "assistant",
