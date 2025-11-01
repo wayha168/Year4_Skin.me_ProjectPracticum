@@ -1,17 +1,19 @@
 // src/Pages/CheckOutPage/CheckOutPage.jsx
 import React, { useState } from 'react';
+// import { useNavigate } from 'react-router-dom';   // <-- add this
 import Navbar from '../../Components/Navbar/Navbar';
 import Footer from '../../Components/Footer/Footer';
 import ImageThree from '../../assets/third_image.png';
 import ImageOne from '../../assets/first_image.png';
 import ImageTwo from '../../assets/second_image.png';
-import MessageButton from "../../Components/MessageWidget/MessageWidget";
-import "./CheckOutPage.css";
+import MessageButton from '../../Components/MessageWidget/MessageWidget';
+import { Link } from 'react-router-dom';
+import './CheckOutPage.css';
 
 function CheckOutPage() {
   const [quantity, setQuantity] = useState(1);
-  const [showPopup, setShowPopup] = useState(false);
   const pricePerItem = 9.99;
+  // const navigate = useNavigate();               // <-- hook for navigation
 
   const increaseQuantity = () => setQuantity(prev => prev + 1);
 
@@ -19,21 +21,16 @@ function CheckOutPage() {
     if (quantity > 1) setQuantity(prev => prev - 1);
   };
 
-  const handleBuyNow = () => {
-    setShowPopup(true);
-    setTimeout(() => setShowPopup(false), 3000); // hide after 3s
-  };
+  // ---- NEW: redirect on Buy Now ----
+  // const handleBuyNow = () => {
+  //   navigate('/delivery_payment');   // <-- change this path if needed
+  // };
 
   const totalPrice = (pricePerItem * quantity).toFixed(2);
 
   return (
     <>
-      {/* ✅ Popup */}
-      {showPopup && (
-        <div className="buy-popup">
-          Successfully Bought!
-        </div>
-      )}
+      {/* Popup removed – no longer needed */}
 
       <div className="image_and_price_amount">
         <div className="image_wrapper">
@@ -43,52 +40,56 @@ function CheckOutPage() {
         </div>
 
         <div className="price_and_amount_wrapper">
-          {/* <p className="skin_me">SKIN.ME</p> */}
-          <p className="font_word hydrating">Hydrating Cream <br/><br/></p>
+          <p className="font_word hydrating">
+            Hydrating Cream <br /><br />
+          </p>
           <p className="font_word">${totalPrice}</p>
 
-
-
-
-          <div className='amount_and_buynow_wrapper'>
+          <div className="amount_and_buynow_wrapper">
+            {/* ----- Quantity controls ----- */}
             <div className="plus_minus_wrapper">
-            <p
-              className={`font_word plus_minus k ${quantity === 1 ? 'disabled' : ''}`}
-              onClick={decreaseQuantity}
-              style={{ cursor: quantity === 1 ? 'not-allowed' : 'pointer', opacity: quantity === 1 ? 0.5 : 1 }}
+              <p
+                className={`font_word plus_minus k ${quantity === 1 ? 'disabled' : ''}`}
+                onClick={decreaseQuantity}
+                style={{
+                  cursor: quantity === 1 ? 'not-allowed' : 'pointer',
+                  opacity: quantity === 1 ? 0.5 : 1,
+                }}
+              >
+                -
+              </p>
+              <p className="font_word plus_minus">{quantity}</p>
+              <p
+                className="font_word plus_minus k"
+                onClick={increaseQuantity}
+                style={{ cursor: 'pointer' }}
+              >
+                +
+              </p>
+            </div>
+
+            {/* ----- Check Out button ----- */}
+            <Link
+              className="buy_now_wrapper"
+              to="/delivery_payment"         // <-- navigation here
+              style={{ cursor: 'pointer' }}   // make it obvious it’s clickable
             >
-              -
-            </p>
-            <p className="font_word plus_minus">{quantity}</p>
-            <p className="font_word plus_minus k" onClick={increaseQuantity} style={{ cursor: 'pointer' }}>
-              +
-            </p>
-          </div>
-
-          <div onClick={handleBuyNow} className="buy_now_wrapper">
-            <p
-              id='buy_now'
-              className="buy_now"
-               // ✅ trigger popup
-            >
-              Buy Now
-            </p>
-          </div>
-
-
-
-
-          
+              <p id="buy_now"  className="buy_now">
+                Check Out
+              </p>
+            </Link>
           </div>
 
           <div className="lorem">
             <p>
-              SKIN.ME Hydrating Cream deeply nourishes and refreshes your skin, leaving it soft, smooth, and
-              healthy-looking. Designed for daily use, it restores moisture balance and strengthens your skin’s
+              SKIN.ME Hydrating Cream deeply nourishes and refreshes your skin,
+              leaving it soft, smooth, and healthy-looking. Designed for daily
+              use, it restores moisture balance and strengthens your skin’s
               natural barrier for long-lasting hydration.
             </p>
           </div>
-          <div className='made_in'>
+
+          <div className="made_in">
             <p>. Made in Korea</p>
           </div>
         </div>
@@ -96,7 +97,7 @@ function CheckOutPage() {
 
       <Navbar />
       <Footer />
-      <MessageButton/>
+      <MessageButton />
     </>
   );
 }
