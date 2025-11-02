@@ -13,6 +13,7 @@ function ProductDetails() {
   const [quantity, setQuantity] = useState(1);
   const [relatedProducts, setRelatedProducts] = useState([]);
 
+  // Fetch related products by brand
   useEffect(() => {
     if (product?.brand?.id) {
       fetch(`https://backend.skinme.store/api/v1/products?brandId=${product.brand.id}`)
@@ -34,13 +35,26 @@ function ProductDetails() {
   const decreaseQuantity = () => quantity > 1 && setQuantity((prev) => prev - 1);
 
   const totalPrice = (product.price * quantity).toFixed(2);
-  const handleCheckout = () => navigate("/check_out", { state: { product, quantity } });
+
+  // ✅ Check login before checkout
+  const handleCheckout = () => {
+    const user = localStorage.getItem("user"); // or "token" depending on your login logic
+
+    if (!user) {
+      alert("Please log in before checking out!");
+      navigate("/login");
+      return;
+    }
+
+    navigate("/check_out", { state: { product, quantity } });
+  };
 
   return (
     <>
       <Navbar />
 
       <section className="product-details-container">
+        {/* Product Images */}
         <div className="product-images">
           {product.images?.length ? (
             product.images.map((img, idx) => (
@@ -56,11 +70,13 @@ function ProductDetails() {
           )}
         </div>
 
+        {/* Product Info */}
         <div className="product-info-section">
           <h2>{product.name}</h2>
           <p className="brand-name">Brand: {product.brand?.name || "Unknown"}</p>
           <p className="price">${totalPrice}</p>
 
+          {/* Quantity controls */}
           <div className="quantity-wrapper">
             <button onClick={decreaseQuantity} disabled={quantity === 1}>
               -
@@ -69,10 +85,12 @@ function ProductDetails() {
             <button onClick={increaseQuantity}>+</button>
           </div>
 
+          {/* Checkout Button */}
           <button className="checkout-btn" onClick={handleCheckout}>
             Check Out
           </button>
 
+          {/* Product Description */}
           <div className="product-description">
             <h4>Description</h4>
             <p>{product.description || "No description available."}</p>
@@ -82,6 +100,7 @@ function ProductDetails() {
         </div>
       </section>
 
+      {/* Related Products */}
       {relatedProducts.length > 0 && (
         <section className="related-section">
           <h3>More from {product.brand?.name}</h3>
