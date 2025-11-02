@@ -57,17 +57,16 @@ const Products = () => {
   // ====== Handlers using OOP helper ======
   const handleAddToCart = async (productId) => {
     if (!user) {
-      loginFirst.redirectToCart(); // "Please log in" message
+      loginFirst.redirectToCart();
       return;
     }
 
     const success = await addToCart(productId, 1);
-    if (success) loginFirst.redirectToCart(true); // "Added to bag" message
+    if (success) loginFirst.redirectToCart(true);
   };
 
   const handleFavorite = async (productId) => {
     if (!user) {
-      // Redirect to login, then back to products page (instead of /favorites)
       const message = loginFirst.messages.loginRequiredFavorite;
       if (loginFirst.setNotification) {
         loginFirst.setNotification(message);
@@ -83,7 +82,6 @@ const Products = () => {
       return;
     }
 
-    // For logged-in users: Add to favorites, show notification, but do NOT redirect
     const success = await addToFavorite(productId);
     if (success) {
       const message = loginFirst.messages.addedToFavorite;
@@ -154,7 +152,7 @@ const Products = () => {
                       }
                       alt={p?.name || "Product Image"}
                       className="product-img"
-                      onClick={() => navigate("/check_out", { state: { product: p } })}
+                      onClick={() => navigate("/product_details", { state: { product: p } })}
                     />
                     <button className="favorite-btn" onClick={() => handleFavorite(p.id)}>
                       <FaHeart />
@@ -185,7 +183,7 @@ const Products = () => {
                   onClick={() => setCurrentPage(i + 1)}
                   className={currentPage === i + 1 ? "active" : ""}
                 >
-                  {i+1}
+                  {i + 1}
                 </button>
               ))}
 
@@ -201,7 +199,7 @@ const Products = () => {
       </main>
 
       <Footer />
-      <MessageWidget/>
+      <MessageWidget />
     </>
   );
 };

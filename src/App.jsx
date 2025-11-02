@@ -8,6 +8,7 @@ import AboutUsPage from "./Pages/AboutUs/AboutUsPage";
 import FavoritePage from "./Pages/FavoritePage/FavoritePage";
 import CartPage from "./Pages/CartPage/CartPage";
 import ProfilePage from "./Pages/ProfilePage/ProfilePage";
+import ProductsDetails from "./Pages/ProductDetails/ProductDetails";
 import { OrderControl } from "./Dashboard/OrderControl";
 import Dashboard from "./Dashboard/Dashboard";
 import ProductCrud from "./Dashboard/ProductCrud";
@@ -29,19 +30,16 @@ function App() {
           {/* Public Pages */}
           <Route path="/" element={<HomePage />} />
           <Route path="/products" element={<Products />} />
+          <Route path="/product_details" element={<ProductsDetails />} />
           <Route path="/about-us" element={<AboutUsPage />} />
           <Route path="/favorites" element={<FavoritePage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          {/* Bag Page */}
           <Route path="/bag_page" element={<BagPage />} />
-          {/* Check Out Page */}
           <Route path="/check_out" element={<CheckOutPage />} />
-
-          {/* dilivery and payment  */}
-          <Route path="/delivery_payment" element={<DiliveryAndPayment/>}/>
+          <Route path="/delivery_payment" element={<DiliveryAndPayment />} />
 
           {/* Dashboard Pages */}
           <Route path="/dashboard" element={<Dashboard />} />
