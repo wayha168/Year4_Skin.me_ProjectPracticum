@@ -20,7 +20,6 @@ import BagPage from "./Pages/BagPage/BagPage";
 import ErrorBoundary from "./Components/ErrorBoundary/ErrorBoundary";
 import { UserControl } from "./Dashboard/UserController";
 // import MessageButton from "./Components/MessageButton/MessageButton";
-import DiliveryAndPayment from "./Pages/DiliveryAndPayment/DiliveryAndPayment";
 function App() {
   return (
     <>
@@ -39,7 +38,6 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/bag_page" element={<BagPage />} />
           <Route path="/check_out" element={<CheckOutPage />} />
-          <Route path="/delivery_payment" element={<DiliveryAndPayment />} />
 
           {/* Dashboard Pages */}
           <Route path="/dashboard" element={<Dashboard />} />

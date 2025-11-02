@@ -446,9 +446,37 @@
 
 .about_us_image_wrapper {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
   justify-items: center;
+}
+@media screen and (max-width: 1190px){
+  .about_us_image_wrapper{
+    scale: 0.95;
+  }
+}
+@media screen and (max-width: 1000px){
+  .about_us_image_wrapper{
+    grid-template-columns: repeat(2, 20rem);
+    justify-content: center;
+    scale: 1.1;
+  }
+}
+@media screen and (max-width: 770px){
+  .about_us_image_wrapper{
+    padding-top: 2rem;
+    grid-template-columns: repeat(2, 15rem);
+    justify-content: center;
+    scale: 1.1;
+  }
+}
+@media screen and (max-width: 650px){
+  .about_us_image_wrapper{
+    grid-template-columns: repeat(1, 1fr);
+    justify-content: center;
+    padding: 5rem 0;
+    scale: 1.2;
+  }
 }
 
 .about_us_image {
@@ -559,10 +587,6 @@
     font-size: 14px;
   }
 
-  .about_us_image {
-    max-width: 14rem;
-    height: 14rem;
-  }
 }
 
 .the-notification {

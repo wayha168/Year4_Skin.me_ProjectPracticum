@@ -129,7 +129,7 @@ const Products = () => {
               placeholder="Search..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="sort-select"
+              className="sort-select search"
             />
           </div>
         </div>
@@ -140,7 +140,7 @@ const Products = () => {
           <p className="loading">No products found.</p>
         ) : (
           <>
-            <div className="products-grid">
+            <div className="products-responsive">
               {currentProducts.map((p) => (
                 <div key={p?.id} className="product-card">
                   <div className="product-img-container">
@@ -173,8 +173,8 @@ const Products = () => {
 
             {/* Pagination Controls */}
             <div className="pagination">
-              <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}>
-                Prev
+              <button className="previous" onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}>
+                {"<"}
               </button>
 
               {Array.from({ length: totalPages }, (_, i) => (
@@ -188,10 +188,10 @@ const Products = () => {
               ))}
 
               <button
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                className="next" onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
               >
-                Next
+                {">"}
               </button>
             </div>
           </>
