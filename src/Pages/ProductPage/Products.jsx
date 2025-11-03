@@ -1,16 +1,17 @@
+// src/pages/Products.jsx  (or wherever you keep it)
 import { useNavigate } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import axios from "../../api/axiosConfig";
 import Navbar from "../../Components/Navbar/Navbar";
 import Footer from "../../Components/Footer/Footer";
 import ThirdImage from "../../assets/third_image.png";
-import { FaCartPlus, FaHeart } from "react-icons/fa";
+import { FaCartPlus, FaHeart, FaChevronRight, FaChevronLeft } from "react-icons/fa";
 import useAuthContext from "../../Authentication/AuthContext";
 import Loading from "../../Components/Loading/Loading";
 import useUserActions from "../../Components/Hooks/userUserActions";
 import LoginFirst from "../../Components/LoginFirst/LoginFirst.js";
 import MessageWidget from "../../Components/MessageWidget/MessageWidget.jsx";
-import "./Products.css";
+import "./Products.css"; // <-- keep your Products-specific CSS
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -26,6 +27,7 @@ const Products = () => {
   const { addToCart, addToFavorite } = useUserActions();
   const loginFirst = new LoginFirst(user, navigate);
 
+  /* ------------------- FETCH CATEGORIES ------------------- */
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -38,6 +40,7 @@ const Products = () => {
     fetchCategories();
   }, []);
 
+  /* ------------------- FETCH PRODUCTS ------------------- */
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
@@ -56,10 +59,10 @@ const Products = () => {
         setLoading(false);
       }
     };
-
     fetchProducts();
   }, [selectedCategory]);
 
+  /* ------------------- HANDLERS ------------------- */
   const handleAddToCart = async (productId) => {
     if (!user) {
       loginFirst.redirectToCart();
@@ -84,12 +87,14 @@ const Products = () => {
     await addToFavorite(productId);
   };
 
+  /* ------------------- FILTER & PAGINATION ------------------- */
   const filteredProducts = products.filter((p) => p?.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
   const startIndex = (currentPage - 1) * productsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, startIndex + productsPerPage);
 
+  /* ------------------- RENDER ------------------- */
   return (
     <>
       <Navbar alwaysVisible={true} />
@@ -131,11 +136,8 @@ const Products = () => {
           <>
             <div className="products-grid">
               {currentProducts.map((p) => (
-                <div
-                  key={p?.id}
-                  className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4 flex flex-col justify-between"
-                >
-                  <div className="relative">
+                <div key={p?.id} className="product-card">
+                  <div className="product-img-container">
                     <img
                       src={
                         p?.images?.[0]?.downloadUrl
@@ -143,74 +145,97 @@ const Products = () => {
                           : ThirdImage
                       }
                       alt={p?.name || "Product Image"}
-                      className="rounded-xl w-full h-52 object-cover cursor-pointer hover:scale-105 transition-transform"
+                      className="product-img"
                       onClick={() => navigate("/product_details", { state: { product: p } })}
                     />
-                    <button
-                      className="absolute top-2 right-2 bg-white/80 hover:bg-red-100 text-red-500 p-2 rounded-full shadow-sm transition"
-                      onClick={() => handleFavorite(p.id)}
-                    >
+                    <button className="favorite-btn" onClick={() => handleFavorite(p.id)}>
                       <FaHeart />
                     </button>
                   </div>
 
-                  <div className="mt-4">
-                    <h3 className="font-semibold text-gray-800 truncate">{p?.name || "No Name"}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2">{p?.description || "No description"}</p>
-                    <p className="text-lg font-semibold text-blue-600 mt-2">${p?.price ?? "N/A"}</p>
-                  </div>
+                  <div className="product-info">
+                    <h3 className="product-name">{p?.name || "No Name"}</h3>
+                    <p className="product-desc line-clamp-2">{p?.description || "No description"}</p>
+                    <p className="product-price">${p?.price ?? "N/A"}</p>
 
-                  <button
-                    className="mt-3 flex items-center justify-center gap-2 bg-blue-500 text-white py-2 rounded-xl hover:bg-blue-600 transition"
-                    onClick={() => handleAddToCart(p.id)}
-                  >
-                    <FaCartPlus /> Add to Cart
-                  </button>
+                    <button className="add-to-cart" onClick={() => handleAddToCart(p.id)}>
+                      <FaCartPlus /> Add to Cart
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex justify-center items-center gap-2 mt-10">
-              {/* Previous Button */}
+            <div className="pagination-wrapper">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
-                className={`px-4 py-2 rounded-full border text-sm font-medium transition-all duration-200 ${
-                  currentPage === 1
-                    ? "text-gray-400 bg-gray-100 cursor-not-allowed border-gray-200"
-                    : "text-blue-600 border-blue-300 hover:bg-blue-500 hover:text-white hover:border-blue-500"
-                }`}
+                className="pagination-btn prev-next"
+                aria-label="Previous page"
               >
-                ← Prev
+                <FaChevronLeft />
               </button>
 
-              {/* Page Numbers */}
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium border transition-all duration-200 ${
-                    currentPage === i + 1
-                      ? "bg-blue-500 text-white border-blue-500 shadow-sm scale-105"
-                      : "text-gray-600 border-gray-200 hover:bg-blue-100 hover:text-blue-600 hover:border-blue-400"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+              {(() => {
+                const pages = [];
+                const start = Math.max(1, currentPage - 3);
+                const end = Math.min(totalPages, currentPage + 3);
 
-              {/* Next Button */}
+                if (start > 1) {
+                  pages.push(
+                    <button key={1} onClick={() => setCurrentPage(1)} className="pagination-btn page-num">
+                      1
+                    </button>
+                  );
+                  if (start > 2)
+                    pages.push(
+                      <span key="start-ellipsis" className="ellipsis">
+                        …
+                      </span>
+                    );
+                }
+
+                for (let i = start; i <= end; i++) {
+                  pages.push(
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i)}
+                      className={`pagination-btn page-num ${currentPage === i ? "active" : ""}`}
+                    >
+                      {i}
+                    </button>
+                  );
+                }
+
+                if (end < totalPages) {
+                  if (end < totalPages - 1)
+                    pages.push(
+                      <span key="end-ellipsis" className="ellipsis">
+                        …
+                      </span>
+                    );
+                  pages.push(
+                    <button
+                      key={totalPages}
+                      onClick={() => setCurrentPage(totalPages)}
+                      className="pagination-btn page-num"
+                    >
+                      {totalPages}
+                    </button>
+                  );
+                }
+
+                return pages;
+              })()}
+
               <button
                 onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className={`px-4 py-2 rounded-full border text-sm font-medium transition-all duration-200 ${
-                  currentPage === totalPages
-                    ? "text-gray-400 bg-gray-100 cursor-not-allowed border-gray-200"
-                    : "text-blue-600 border-blue-300 hover:bg-blue-500 hover:text-white hover:border-blue-500"
-                }`}
+                className="pagination-btn prev-next"
+                aria-label="Next page"
               >
-                Next →
+                <FaChevronRight />
               </button>
             </div>
           </>

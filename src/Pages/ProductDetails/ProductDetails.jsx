@@ -13,7 +13,6 @@ function ProductDetails() {
   const [quantity, setQuantity] = useState(1);
   const [relatedProducts, setRelatedProducts] = useState([]);
 
-  // Fetch related products by brand
   useEffect(() => {
     if (product?.brand?.id) {
       fetch(`https://backend.skinme.store/api/v1/products?brandId=${product.brand.id}`)
@@ -23,6 +22,7 @@ function ProductDetails() {
     }
   }, [product]);
 
+  console.log(product);
   if (!product) {
     return (
       <div className="no-product">
@@ -36,7 +36,6 @@ function ProductDetails() {
 
   const totalPrice = (product.price * quantity).toFixed(2);
 
-  // ✅ Check login before checkout
   const handleCheckout = () => {
     const user = localStorage.getItem("user"); // or "token" depending on your login logic
 
@@ -73,7 +72,7 @@ function ProductDetails() {
         {/* Product Info */}
         <div className="product-info-section">
           <h2>{product.name}</h2>
-          <p className="brand-name">Brand: {product.brand?.name || "Unknown"}</p>
+          <p className="brand-name">Brand: {product?.brand || "Unknown"}</p>
           <p className="price">${totalPrice}</p>
 
           {/* Quantity controls */}
@@ -85,7 +84,6 @@ function ProductDetails() {
             <button onClick={increaseQuantity}>+</button>
           </div>
 
-          {/* Checkout Button */}
           <button className="checkout-btn" onClick={handleCheckout}>
             Check Out
           </button>
@@ -103,7 +101,7 @@ function ProductDetails() {
       {/* Related Products */}
       {relatedProducts.length > 0 && (
         <section className="related-section">
-          <h3>More from {product.brand?.name}</h3>
+          <h3>More from {product?.brand}</h3>
           <div className="related-grid">
             {relatedProducts.map((item) => (
               <div

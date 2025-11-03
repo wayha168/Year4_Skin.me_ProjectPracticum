@@ -1,4 +1,3 @@
-// src/Pages/HomePage/HomePage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../../Components/Navbar/Navbar.jsx";
@@ -6,25 +5,25 @@ import Footer from "../../Components/Footer/Footer.jsx";
 import axios from "../../api/axiosConfig";
 import useUserActions from "../../Components/Hooks/userUserActions.js";
 import useAuthContext from "../../Authentication/AuthContext.jsx";
-import "./HomePage.css";
+import LoginFirst from "../../Components/LoginFirst/LoginFirst.js";
+import MessageWidget from "../../Components/MessageWidget/MessageWidget.jsx";
+
 import MainImage from "../../assets/product_homepage.png";
 import FirstImage from "../../assets/first_image.png";
 import SecondImage from "../../assets/second_image.png";
 import ThirdImage from "../../assets/third_image.png";
+
 import { FaCartPlus, FaHeart } from "react-icons/fa";
-import LoginFirst from "../../Components/LoginFirst/LoginFirst.js";
-import MessageWidget from "../../Components/MessageWidget/MessageWidget.jsx";
+import "./HomePage.css";
 
 const HomePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthContext();
-
   const { addToCart, addToFavorite } = useUserActions();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Instantiate OOP helper
   const loginFirst = new LoginFirst(user, navigate);
 
   const scrollToProducts = () => {
@@ -54,76 +53,43 @@ const HomePage = () => {
     fetchProducts();
   }, []);
 
-  // ===== Handlers using LoginFirst OOP =====
   const handleFavoriteClick = async (productId) => {
     if (!user) {
-      // Redirect to login, then back to homepage (instead of /favorites)
       const message = loginFirst.messages.loginRequiredFavorite;
-      if (loginFirst.setNotification) {
-        loginFirst.setNotification(message);
-        setTimeout(() => loginFirst.setNotification(null), 3000);
-      }
       loginFirst.safeNavigate("/login", {
         state: {
           showLoginPopup: true,
-          redirectTo: window.location.pathname, // Return to homepage after login
+          redirectTo: window.location.pathname,
           popupMessage: message,
         },
       });
       return;
     }
 
-    // For logged-in users: Add to favorites, show notification, but do NOT redirect
-    const success = await addToFavorite(productId);
-    if (success) {
-      const message = loginFirst.messages.addedToFavorite;
-      if (loginFirst.setNotification) {
-        loginFirst.setNotification(message);
-        setTimeout(() => loginFirst.setNotification(null), 3000);
-      }
-    }
+    await addToFavorite(productId);
   };
 
   const handleAddToCartClick = async (productId) => {
     if (!user) {
-      // Redirect to login, then back to homepage (instead of /bag_page)
       const message = loginFirst.messages.loginRequiredCart;
-      if (loginFirst.setNotification) {
-        loginFirst.setNotification(message);
-        setTimeout(() => loginFirst.setNotification(null), 3000);
-      }
       loginFirst.safeNavigate("/login", {
         state: {
           showLoginPopup: true,
-          redirectTo: window.location.pathname, // Return to homepage after login
+          redirectTo: window.location.pathname,
           popupMessage: message,
         },
       });
       return;
     }
 
-    // For logged-in users: Add to cart, show notification, but do NOT redirect
-    const success = await addToCart(productId, 1);
-    if (success) {
-      const message = loginFirst.messages.addedToCart;
-      if (loginFirst.setNotification) {
-        loginFirst.setNotification(message);
-        setTimeout(() => loginFirst.setNotification(null), 3000);
-      }
-    }
-  };
-
-  // Scroll to products section
-  const goToProducts = (e) => {
-    e.preventDefault();
-    scrollToProducts();
+    await addToCart(productId, 1);
   };
 
   return (
     <>
       <Navbar alwaysVisible={true} />
 
-      {/* ===== HERO SECTION ===== */}
+      {/* HERO SECTION */}
       <div className="homepage_main_wrapper">
         <div className="round_purple fourth"></div>
         <div className="homepage-container">
@@ -139,7 +105,7 @@ const HomePage = () => {
               <p className="give_you_the">Give you the best skincare products is our mission.</p>
             </div>
             <div className="homepage-content">
-              <button onClick={goToProducts} className="shop_now">
+              <button onClick={scrollToProducts} className="shop_now">
                 Shop Now
               </button>
             </div>
@@ -151,7 +117,7 @@ const HomePage = () => {
         <div className="round_purple second"></div>
       </div>
 
-      {/* ===== OVERVIEW SECTION ===== */}
+      {/* OVERVIEW SECTION */}
       <div className="main_overview_wrapper">
         <div className="mini_overview_wrapper">
           <div className="let_have_a">Let's Have A Look</div>
@@ -169,12 +135,12 @@ const HomePage = () => {
         <div className="round_purple third"></div>
       </div>
 
-      {/* ===== PRODUCTS SECTION ===== */}
+      {/* PRODUCTS SECTION */}
       <section id="product" className="home-products-section">
-        <div className="section-header">
-          <h2>Our Products</h2>
+        <div className="px-5 section-header uppercase">
+          <h2 >Product</h2>
           <button className="view-all-btn" onClick={() => navigate("/products")}>
-            View All
+            All Product
           </button>
         </div>
 
@@ -183,7 +149,7 @@ const HomePage = () => {
         ) : products.length === 0 ? (
           <p className="loading">No products found.</p>
         ) : (
-          <div className="products-responsive">
+          <div className="products-grid">
             {products.slice(0, 10).map((p) => (
               <div key={p.id} className="product-card">
                 <div className="product-img-container">
@@ -205,7 +171,7 @@ const HomePage = () => {
                   <h3 className="product-name">{p.name}</h3>
                   <p className="product-price">${p.price}</p>
                   <button className="add-to-cart" onClick={() => handleAddToCartClick(p.id)}>
-                    <FaCartPlus />  
+                    <FaCartPlus /> Add to Cart
                   </button>
                 </div>
               </div>
@@ -214,7 +180,7 @@ const HomePage = () => {
         )}
       </section>
 
-      {/* ===== ABOUT US SECTION ===== */}
+      {/* ABOUT US SECTION */}
       <div id="aboutus" className="main_wrapper_about_us">
         <div className="mini_sentence_wrapper">
           <p className="word_about_us">About Us</p>
@@ -232,7 +198,7 @@ const HomePage = () => {
       </div>
 
       <Footer />
-      <MessageWidget/>
+      <MessageWidget />
     </>
   );
 };
