@@ -1,4 +1,3 @@
-// src/Pages/Products/Products.jsx
 import { useNavigate } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import axios from "../../api/axiosConfig";
@@ -10,8 +9,8 @@ import useAuthContext from "../../Authentication/AuthContext";
 import Loading from "../../Components/Loading/Loading";
 import useUserActions from "../../Components/Hooks/userUserActions";
 import LoginFirst from "../../Components/LoginFirst/LoginFirst.js";
-import "./Products.css";
 import MessageWidget from "../../Components/MessageWidget/MessageWidget.jsx";
+import "./Products.css";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -25,22 +24,9 @@ const Products = () => {
   const { user } = useAuthContext();
   const navigate = useNavigate();
   const { addToCart, addToFavorite } = useUserActions();
-
-  // OOP Helper instance
   const loginFirst = new LoginFirst(user, navigate);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await axios.get("/products/all", { withCredentials: true });
-        setProducts(res?.data?.data || []);
-      } catch (err) {
-        console.error("Error fetching products:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     const fetchCategories = async () => {
       try {
         const res = await axios.get("/categories/all-categories");
@@ -49,18 +35,36 @@ const Products = () => {
         console.error("Error fetching categories:", err);
       }
     };
-
-    fetchProducts();
     fetchCategories();
   }, []);
 
-  // ====== Handlers using OOP helper ======
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        let res;
+        if (selectedCategory) {
+          res = await axios.get(`/products/by-category/${selectedCategory}`);
+        } else {
+          res = await axios.get("/products/all");
+        }
+        setProducts(res?.data?.data || []);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [selectedCategory]);
+
   const handleAddToCart = async (productId) => {
     if (!user) {
       loginFirst.redirectToCart();
       return;
     }
-
     const success = await addToCart(productId, 1);
     if (success) loginFirst.redirectToCart(true);
   };
@@ -68,36 +72,19 @@ const Products = () => {
   const handleFavorite = async (productId) => {
     if (!user) {
       const message = loginFirst.messages.loginRequiredFavorite;
-      if (loginFirst.setNotification) {
-        loginFirst.setNotification(message);
-        setTimeout(() => loginFirst.setNotification(null), 3000);
-      }
       loginFirst.safeNavigate("/login", {
         state: {
           showLoginPopup: true,
-          redirectTo: window.location.pathname, // Return to products after login
+          redirectTo: window.location.pathname,
           popupMessage: message,
         },
       });
       return;
     }
-
-    const success = await addToFavorite(productId);
-    if (success) {
-      const message = loginFirst.messages.addedToFavorite;
-      if (loginFirst.setNotification) {
-        loginFirst.setNotification(message);
-        setTimeout(() => loginFirst.setNotification(null), 3000);
-      }
-    }
+    await addToFavorite(productId);
   };
 
-  // Filtered + paginated products
-  const filteredProducts = Array.isArray(products)
-    ? products
-        .filter((p) => (selectedCategory ? p?.category?.id === selectedCategory : true))
-        .filter((p) => p?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
-    : [];
+  const filteredProducts = products.filter((p) => p?.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
   const startIndex = (currentPage - 1) * productsPerPage;
@@ -106,19 +93,20 @@ const Products = () => {
   return (
     <>
       <Navbar alwaysVisible={true} />
-      <main className="products-section h-auto min-h-screen py-8 px-4 bg-gray-100">
-        <div className="products-header py-6 px-4 flex flex-col md:flex-row md:justify-between md:items-center">
-          <h1 className="product-title">Our Products</h1>
+      <main className="products-section h-auto min-h-screen py-10 px-6 bg-gray-50">
+        {/* ===== Filter Section ===== */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+          <h1 className="text-3xl font-semibold text-gray-800">🛍️ Our Products</h1>
 
-          <div className="sort-dropdown">
+          <div className="flex flex-wrap gap-3 items-center bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="sort-select"
+              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
             >
               <option value="">All Categories</option>
               {categories.map((cat) => (
-                <option key={cat?.id} value={cat?.id}>
+                <option key={cat?.id} value={cat?.name}>
                   {cat?.name || "Unnamed Category"}
                 </option>
               ))}
@@ -126,24 +114,28 @@ const Products = () => {
 
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="🔍 Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="sort-select"
+              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all w-56"
             />
           </div>
         </div>
 
+        {/* ===== Product Grid ===== */}
         {loading ? (
           <Loading />
         ) : currentProducts.length === 0 ? (
-          <p className="loading">No products found.</p>
+          <p className="text-center text-gray-500 text-lg mt-10">No products found.</p>
         ) : (
           <>
-            <div className="products-grid">
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {currentProducts.map((p) => (
-                <div key={p?.id} className="product-card">
-                  <div className="product-img-container">
+                <div
+                  key={p?.id}
+                  className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-4 flex flex-col justify-between"
+                >
+                  <div className="relative">
                     <img
                       src={
                         p?.images?.[0]?.downloadUrl
@@ -151,29 +143,44 @@ const Products = () => {
                           : ThirdImage
                       }
                       alt={p?.name || "Product Image"}
-                      className="product-img"
+                      className="rounded-xl w-full h-52 object-cover cursor-pointer hover:scale-105 transition-transform"
                       onClick={() => navigate("/product_details", { state: { product: p } })}
                     />
-                    <button className="favorite-btn" onClick={() => handleFavorite(p.id)}>
+                    <button
+                      className="absolute top-2 right-2 bg-white/80 hover:bg-red-100 text-red-500 p-2 rounded-full shadow-sm transition"
+                      onClick={() => handleFavorite(p.id)}
+                    >
                       <FaHeart />
                     </button>
                   </div>
 
-                  <div className="product-info">
-                    <h3 className="product-name">{p?.name || "No Name"}</h3>
-                    <p className="product-desc">{p?.description || "No description available"}</p>
-                    <p className="product-price">${p?.price ?? "N/A"}</p>
-                    <button className="add-to-cart" onClick={() => handleAddToCart(p.id)}>
-                      <FaCartPlus />
-                    </button>
+                  <div className="mt-4">
+                    <h3 className="font-semibold text-gray-800 truncate">{p?.name || "No Name"}</h3>
+                    <p className="text-sm text-gray-500 line-clamp-2">{p?.description || "No description"}</p>
+                    <p className="text-lg font-semibold text-blue-600 mt-2">${p?.price ?? "N/A"}</p>
                   </div>
+
+                  <button
+                    className="mt-3 flex items-center justify-center gap-2 bg-blue-500 text-white py-2 rounded-xl hover:bg-blue-600 transition"
+                    onClick={() => handleAddToCart(p.id)}
+                  >
+                    <FaCartPlus /> Add to Cart
+                  </button>
                 </div>
               ))}
             </div>
 
-            {/* Pagination Controls */}
-            <div className="pagination">
-              <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}>
+            {/* ===== Pagination ===== */}
+            <div className="flex justify-center mt-10 space-x-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 rounded-lg border ${
+                  currentPage === 1
+                    ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                    : "text-blue-600 border-blue-400 hover:bg-blue-100"
+                } transition`}
+              >
                 Prev
               </button>
 
@@ -181,7 +188,11 @@ const Products = () => {
                 <button
                   key={i + 1}
                   onClick={() => setCurrentPage(i + 1)}
-                  className={currentPage === i + 1 ? "active" : ""}
+                  className={`px-4 py-2 rounded-lg border transition ${
+                    currentPage === i + 1
+                      ? "bg-blue-500 text-white border-blue-500"
+                      : "text-gray-600 border-gray-300 hover:bg-blue-50"
+                  }`}
                 >
                   {i + 1}
                 </button>
@@ -190,6 +201,11 @@ const Products = () => {
               <button
                 onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
+                className={`px-4 py-2 rounded-lg border ${
+                  currentPage === totalPages
+                    ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                    : "text-blue-600 border-blue-400 hover:bg-blue-100"
+                } transition`}
               >
                 Next
               </button>
