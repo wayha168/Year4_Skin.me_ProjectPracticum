@@ -56,9 +56,9 @@ export const OrderControl = () => {
   });
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-gray-100 h-screen">
       <Sidebar />
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 h-screen overflow-y-auto">
         {/* ← NEW: Header with Role */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-semibold text-gray-800">All Orders</h1>
@@ -113,9 +113,7 @@ export const OrderControl = () => {
                         {o.orderStatus}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-semibold">
-                      ${parseFloat(o.totalAmount).toFixed(2)}
-                      </td>
+                    <td className="px-6 py-4 font-semibold">${parseFloat(o.totalAmount).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>

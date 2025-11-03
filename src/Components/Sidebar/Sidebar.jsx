@@ -29,10 +29,10 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="w-68 bg-gradient-to-b from-blue-600 to-blue-400 shadow-lg p-6 flex flex-col min-h-screen rounded-r-3xl">
-      <h2 className="text-5xl font-bold text-white mb-10 tracking-wider text-center">Skin.Me Admin</h2>
+    <aside className="w-48 bg-gradient-to-b from-blue-600 to-blue-400 shadow-lg p-6 flex flex-col h-screen rounded-r-xl">
+      <h2 className="text-2xl font-bold text-white mb-5 tracking-wider text-center">Skin.Me</h2>
 
-      <nav className="flex flex-col gap-4">
+      <nav className="flex flex-col gap-4 ">
         <Link to="/dashboard" className={linkClass("/dashboard")}>
           <FaChartLine /> <span>Dashboard</span>
         </Link>
