@@ -183,7 +183,7 @@ const HomePage = () => {
         ) : products.length === 0 ? (
           <p className="loading">No products found.</p>
         ) : (
-          <div className="products-grid">
+          <div className="products-responsive">
             {products.slice(0, 10).map((p) => (
               <div key={p.id} className="product-card">
                 <div className="product-img-container">

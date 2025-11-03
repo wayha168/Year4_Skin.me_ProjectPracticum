@@ -25,47 +25,50 @@
   flex-wrap: wrap;
 }
 
-.sort-select {
+.sort-select{
   padding: 0.5rem 1rem;
   border-radius: 6px;
-  border: 1px solid #ccc;
+  border: 2px solid #989898;
   font-size: 1rem;
   cursor: pointer;
   transition: border 0.2s ease;
 }
-
-.sort-select:hover {
-  border-color: #d13e82;
+.sort-select.search{
+  height: 2.4rem;
 }
 
-.products-grid {
+.products-responsive {
   display: grid;
   grid-template-columns: repeat(5, 2fr);
   /* 5 columns on desktop */
   gap: 2rem;
 }
 
-@media (max-width: 1200px) {
-  .products-grid {
+@media (max-width: 1250px) {
+  .products-responsive {
     grid-template-columns: repeat(4, 1fr);
   }
 }
 
-@media (max-width: 992px) {
-  .products-grid {
+@media (max-width: 1100px) {
+  .products-responsive {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-@media (max-width: 768px) {
-  .products-grid {
+@media (max-width: 900px) {
+  .products-responsive {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .sort-dropdown{
+    padding-top: 3rem;
   }
 }
 
-@media (max-width: 480px) {
-  .products-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 630px) {
+  .products-responsive {
+    grid-template-columns:22rem;
+    justify-content: center;
   }
 }
 
@@ -182,7 +185,11 @@
   gap: 0.5rem;
   margin-top: 2rem;
 }
-
+.previous,.next{
+  background-color: black;
+  font-weight:800 ;
+  font-size: 1rem;
+}
 .pagination button {
   border: none;
   padding: 0.5rem 0.9rem;

@@ -1,14 +1,17 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../Components/Navbar/Navbar";
 import Footer from "../../Components/Footer/Footer";
 import MessageWidget from "../../Components/MessageWidget/MessageWidget";
 import "./CheckOutPage.css";
+import DiliveryAndPayment from "../../Components/DiliveryAndPayment/DiliveryAndPayment";
 
 function CheckOutPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { product, quantity } = location.state || {};
+  const [showModal, setShowModal] = useState(false);
+  const modalRef = useRef(null); // <-- Ref to detect outside clicks
 
   if (!product) {
     return (
@@ -23,9 +26,34 @@ function CheckOutPage() {
 
   const totalPrice = (product.price * quantity).toFixed(2);
 
-  const handlePayment = () => {
-    alert(`Proceeding to payment for ${product.name} ($${totalPrice})`);
-  };
+  // Close modal when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (modalRef.current && !modalRef.current.contains(e.target)) {
+        setShowModal(false);
+      }
+    };
+
+    if (showModal) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showModal]);
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [showModal]);
 
   return (
     <>
@@ -33,7 +61,7 @@ function CheckOutPage() {
 
       <div className="checkout-page">
         <div className="checkout-container">
-          <h2 className="checkout-title">🛍️ Your Bag</h2>
+          <h2 className="checkout-title">Your Bag</h2>
 
           <div className="checkout-card">
             <div className="checkout-item">
@@ -56,7 +84,7 @@ function CheckOutPage() {
               <button className="back-btn" onClick={() => navigate(-1)}>
                 ← Continue Shopping
               </button>
-              <button className="pay-btn" onClick={handlePayment}>
+              <button className="pay-btn" onClick={() => setShowModal(true)}>
                 Proceed to Payment
               </button>
             </div>
@@ -66,6 +94,18 @@ function CheckOutPage() {
 
       <Footer />
       <MessageWidget />
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-end bg-black bg-opacity-50 z-50">
+          <div
+            ref={modalRef}
+            className="pt-20 relative bg-white p-0 max-w-lg w-full max-h-[100vh] overflow-y-auto"
+          >
+            <DiliveryAndPayment onClose={() => setShowModal(false)} />
+          </div>
+        </div>
+      )}  
     </>
   );
 }

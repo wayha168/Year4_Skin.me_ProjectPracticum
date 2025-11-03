@@ -117,7 +117,7 @@ const Products = () => {
               placeholder="🔍 Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all w-56"
+              className="sort-select"
             />
           </div>
         </div>
@@ -129,7 +129,7 @@ const Products = () => {
           <p className="text-center text-gray-500 text-lg mt-10">No products found.</p>
         ) : (
           <>
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="products-grid">
               {currentProducts.map((p) => (
                 <div
                   key={p?.id}
@@ -170,17 +170,9 @@ const Products = () => {
               ))}
             </div>
 
-            {/* ===== Pagination ===== */}
-            <div className="flex justify-center mt-10 space-x-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                disabled={currentPage === 1}
-                className={`px-4 py-2 rounded-lg border ${
-                  currentPage === 1
-                    ? "text-gray-400 bg-gray-100 cursor-not-allowed"
-                    : "text-blue-600 border-blue-400 hover:bg-blue-100"
-                } transition`}
-              >
+            {/* Pagination Controls */}
+            <div className="pagination">
+              <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}>
                 Prev
               </button>
 
@@ -199,7 +191,7 @@ const Products = () => {
               ))}
 
               <button
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                className="next" onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
                 className={`px-4 py-2 rounded-lg border ${
                   currentPage === totalPages
@@ -207,7 +199,7 @@ const Products = () => {
                     : "text-blue-600 border-blue-400 hover:bg-blue-100"
                 } transition`}
               >
-                Next
+                {">"}
               </button>
             </div>
           </>
