@@ -20,7 +20,10 @@ import BagPage from "./Pages/BagPage/BagPage";
 import ErrorBoundary from "./Components/ErrorBoundary/ErrorBoundary";
 import { UserControl } from "./Dashboard/UserController";
 import Sales from "./Dashboard/Sales";
-// import MessageButton from "./Components/MessageButton/MessageButton";
+
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 function App() {
   return (
     <>
@@ -55,9 +58,16 @@ function App() {
           {/* 404 Fallback */}
           <Route
             path="*"
-            element={<div className="text-center mt-20 text-2xl font-semibold">404 - Page Not Found</div>}
+            element={
+              <div className="text-center  text-2xl font-semibold">
+                404 - Page Not Found
+              </div>
+            }
           />
         </Routes>
+
+        {/* ✅ Add ToastContainer here */}
+        <ToastContainer className="mt-20 mr-5" autoClose={3000} />
       </ErrorBoundary>
     </>
   );

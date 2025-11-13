@@ -95,7 +95,7 @@ const Navbar = ({ alwaysVisible = false }) => {
               safeNavigate("/");
             }}
           >
-            <span className="brand-name">SKIN.ME</span>
+            <span className="main-brand-name  ">SKIN.ME</span>
             <span className="brand-tagline">@Home Of Your Care</span>
           </Link>
 
@@ -144,7 +144,7 @@ const Navbar = ({ alwaysVisible = false }) => {
             <Link
               to="/bag_page"
               onClick={handleBagClick}
-              className="icons nav-icon"
+              className="icons nav-icon "
             >
               <i className="fa-solid fa-bag-shopping" />
             </Link>

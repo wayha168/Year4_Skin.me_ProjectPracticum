@@ -1,3 +1,4 @@
+// src/Pages/CheckOutPage/CheckOutPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../Components/Navbar/Navbar";
@@ -102,7 +103,7 @@ function CheckOutPage() {
             ref={modalRef}
             className="pt-20 relative bg-white p-0 max-w-lg w-full max-h-[100vh] overflow-y-auto"
           >
-            <DiliveryAndPayment onClose={() => setShowModal(false)} />
+            <DiliveryAndPayment totalPrice={totalPrice} onClose={() => setShowModal(false)} />
           </div>
         </div>
       )}  

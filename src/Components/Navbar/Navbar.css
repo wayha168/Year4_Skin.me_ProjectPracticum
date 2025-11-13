@@ -1,5 +1,6 @@
 .navbar-wrapper {
   position: fixed;
+ 
   top: 0;
   left: 0;
   width: 100%;
@@ -9,7 +10,7 @@
   z-index: 9999;
   transition: top 0.3s;
   user-select: none;
-
+  height: 6rem;
 }
 
 .navbar-content {
@@ -28,7 +29,7 @@
   text-decoration: none;
 }
 
-.brand-name {
+.main-brand-name{
   margin-bottom: -15px;
   font-size: 48px;
   font-weight: bold;
@@ -87,10 +88,11 @@
 
 
 .auth-button.login-button{
+    margin-top: 0.4rem;
     padding: 1rem 2rem;
     text-align: center;
     background: transparent;
-    border-radius:40px ;
+    border-radius:10px ;
     color: #ed3b8e;
     background: transparent;
     border: 2px solid #ed3b8e;
@@ -241,6 +243,10 @@ dropdown {
 }
 
 @media screen and (max-width: 1030px) {
+  .navbar-wrapper{
+   
+    height: 6rem;
+  }
   .auth-menu.active{
     margin-top: -0.1rem;
     width: 50%;
@@ -287,7 +293,7 @@ dropdown {
     position: absolute;
     background-color: #ffd0ed;
     right: 0;
-    top: 6.2rem;
+    top: 6rem;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -301,18 +307,17 @@ dropdown {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding-bottom: 1rem;
+    padding-bottom: 2rem;
   }
 
   /* AUTH MENU */
   .auth-menu {
-
     position: absolute;
     display: flex;
     flex-direction: column;
     right: 0;
     width: 100%;
-    top: 21.3rem;
+    top: 21.1rem;
     background: #ffd0ed;
   }
 
@@ -327,15 +332,14 @@ dropdown {
 
   /* ICONS INSIDE MOBILE */
   .icons {
-    width: 95.5%;
-    border-bottom: 2px solid #000;
+    width: 100%;
+    border-bottom: 2px solid #000;  
     background: #ffd0ed;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1.5rem;
-    height: 3.5rem;
+    padding: 0.7rem 0;
   }
 
   /* -------------------- HAMBURGER ICON -------------------- */
@@ -359,12 +363,15 @@ dropdown {
 
 
 @media screen and (max-width: 690px) {
+  .navbar-wrapper{
+
+    height: 6rem;
+  }
   .auth-button {
     padding-left: 36%
   }
 }
-.icons.favorite{
-  margin-right: -0.5rem;
+.icons{
 }
 .auth-button.signup-button {
   white-space: nowrap;
