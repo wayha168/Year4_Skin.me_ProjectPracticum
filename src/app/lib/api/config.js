@@ -11,3 +11,7 @@ export const UPLOADS_BASE = process.env.NEXT_PUBLIC_UPLOADS_BASE ?? "";
 
 /** Base path for the separate chatbot service (via Next.js rewrites). */
 export const CHATBOT_API_BASE = "/api/chatbot";
+
+/** WebSocket base for live admin/user chat (direct host; Next rewrites don't proxy WS). */
+export const CHATBOT_WS_BASE =
+  process.env.NEXT_PUBLIC_CHATBOT_WS_BASE ?? "wss://chatbot.skinme.store";

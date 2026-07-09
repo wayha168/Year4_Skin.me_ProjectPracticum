@@ -1,7 +1,8 @@
 import "./globals.css";
 import { AuthProvider } from "./lib/Authentication/AuthContext";
+import { CartCountProvider } from "./lib/CartCountContext";
 import ToastProvider from "./components/ToastProvider";
-import DiscountModal from "../Components/DiscountModal/Modal";
+import DiscountModalClient from "../Components/DiscountModal/DiscountModalClient";
 
 export const viewport = {
   width: "device-width",
@@ -21,18 +22,22 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>
-         <link
+      <head>
+        <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
           integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
           crossOrigin="anonymous"
           referrerPolicy="no-referrer"
         />
+      </head>
+      <body suppressHydrationWarning>
         <AuthProvider>
-          {children}
-          <ToastProvider />
-          <DiscountModal />
+          <CartCountProvider>
+            {children}
+            <ToastProvider />
+            <DiscountModalClient />
+          </CartCountProvider>
         </AuthProvider>
       </body>
     </html>

@@ -34,10 +34,13 @@ const ProfilePage = () => {
   const [user, setUser] = useState(null);
   const [favorites, setFavorites] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notification, setNotification] = useState("");
   const [discountedPrices, setDiscountedPrices] = useState({});
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
 
   const userId = authUser?.id;
 
@@ -78,15 +81,104 @@ const ProfilePage = () => {
     }
   }, [userId]);
 
+  const normalizeOrders = (payload) => {
+    if (Array.isArray(payload?.content)) return payload.content;
+    if (Array.isArray(payload?.orders)) return payload.orders;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload)) return payload;
+    return [];
+  };
+
+  const getOrderLineItems = (order) => {
+    if (!order || typeof order !== "object") return [];
+    const candidates = [
+      order.orderItems,
+      order.order_items,
+      order.items,
+      order.products,
+      order.orderProductList,
+      order.orderProducts,
+      order.cartItems,
+      order.lineItems,
+    ];
+    for (const list of candidates) {
+      if (Array.isArray(list) && list.length) return list;
+    }
+    return [];
+  };
+
+  const getOrderIdValue = (order) => order?.orderId ?? order?.order_id ?? order?.id ?? null;
+
+  const getStatusTone = (status) => {
+    const s = String(status || "").toLowerCase();
+    if (["delivered", "completed", "success", "paid"].includes(s)) {
+      return "bg-green-100 text-green-800";
+    }
+    if (["pending", "processing", "confirmed", "shipped"].includes(s)) {
+      return "bg-amber-100 text-amber-800";
+    }
+    if (["cancelled", "canceled", "failed", "expired"].includes(s)) {
+      return "bg-red-100 text-red-800";
+    }
+    return "bg-gray-200 text-gray-700";
+  };
+
+  const formatOrderDate = (value) => {
+    if (!value) return "—";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   const fetchOrders = useCallback(async () => {
     if (!userId) return;
+    setOrdersLoading(true);
+    setOrdersError("");
     try {
-      const res = await axiosAuth.get("/orders/all", { withCredentials: true });
-      const allOrders = res.data?.data || [];
-      const myOrders = allOrders.filter((o) => Number(o.userId) === Number(userId));
-      setOrders(myOrders);
-    } catch {
+      let list = [];
+
+      // Prefer user-scoped endpoints so each user only sees their own orders
+      try {
+        const res = await axiosAuth.get("/orders/my-orders");
+        list = normalizeOrders(res?.data?.data ?? res?.data);
+      } catch {
+        try {
+          const res = await axiosAuth.get(`/orders/user/${userId}`);
+          list = normalizeOrders(res?.data?.data ?? res?.data);
+        } catch {
+          const res = await axiosAuth.get("/orders/all");
+          const all = normalizeOrders(res?.data?.data ?? res?.data);
+          list = all.filter(
+            (o) =>
+              Number(o.userId ?? o.user_id ?? o.user?.id) === Number(userId)
+          );
+        }
+      }
+
+      // Safety: always keep only this user's orders
+      list = list.filter((o) => {
+        const oid = o.userId ?? o.user_id ?? o.user?.id;
+        if (oid == null) return true; // my-orders / user endpoint may omit userId
+        return Number(oid) === Number(userId);
+      });
+
+      list.sort((a, b) => {
+        const aTime = Date.parse(a.createdAt ?? a.created_at ?? a.orderDate ?? "") || 0;
+        const bTime = Date.parse(b.createdAt ?? b.created_at ?? b.orderDate ?? "") || 0;
+        return bTime - aTime;
+      });
+
+      setOrders(list);
+    } catch (err) {
+      console.error("Failed to load order history:", err);
       setOrders([]);
+      setOrdersError(err?.response?.data?.message || "Could not load your orders.");
+    } finally {
+      setOrdersLoading(false);
     }
   }, [userId]);
 
@@ -442,35 +534,118 @@ const ProfilePage = () => {
 
                 {/* Order history list */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Recent Orders</h3>
-                  {loading ? (
-                    <p className="text-gray-500 text-sm py-2">Loading orders...</p>
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-gray-700">Order History</h3>
+                    <button
+                      type="button"
+                      onClick={fetchOrders}
+                      disabled={ordersLoading}
+                      className="text-xs font-medium text-[#eb61a2] hover:underline disabled:opacity-50"
+                    >
+                      {ordersLoading ? "Checking…" : "Refresh"}
+                    </button>
+                  </div>
+
+                  {ordersLoading && orders.length === 0 ? (
+                    <p className="text-gray-500 text-sm py-2">Checking your orders…</p>
+                  ) : ordersError ? (
+                    <p className="text-red-500 text-sm py-2">{ordersError}</p>
                   ) : orders.length === 0 ? (
                     <p className="text-gray-500 text-sm py-2">No orders yet.</p>
                   ) : (
-                    <ul className="space-y-2">
-                      {orders.slice(0, 10).map((o, index) => (
-                        <li
-                          key={o.orderId ?? o.id ?? Math.random()}
-                          className="flex flex-wrap items-center justify-between gap-2 py-3 px-4 bg-gray-50 rounded-lg text-sm"
-                        >
-                          <span className="font-mono text-gray-700">
-                            #{index + 1} — {displayUser?.email || "—"}
-                          </span>
-                          <span
-                            className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                              (o.orderStatus || "").toLowerCase() === "delivered"
-                                ? "bg-green-100 text-green-800"
-                                : (o.orderStatus || "").toLowerCase() === "pending"
-                                  ? "bg-amber-100 text-amber-800"
-                                  : "bg-gray-200 text-gray-700"
-                            }`}
+                    <ul className="space-y-3">
+                      {orders.map((o, index) => {
+                        const orderId = getOrderIdValue(o);
+                        const status = o.orderStatus ?? o.status ?? "—";
+                        const items = getOrderLineItems(o);
+                        const isExpanded = expandedOrderId === String(orderId);
+                        const created = o.createdAt ?? o.created_at ?? o.orderDate;
+
+                        return (
+                          <li
+                            key={orderId ?? `order-${index}`}
+                            className="rounded-xl border border-gray-100 bg-gray-50 overflow-hidden"
                           >
-                            {o.orderStatus ?? "—"}
-                          </span>
-                          <span className="font-semibold text-[#eb61a2]">{formatPrice(o.totalAmount)}</span>
-                        </li>
-                      ))}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedOrderId(isExpanded ? null : String(orderId))
+                              }
+                              className="w-full flex flex-wrap items-center justify-between gap-2 py-3 px-4 text-sm text-left hover:bg-gray-100/80 transition-colors"
+                            >
+                              <div className="min-w-0">
+                                <p className="font-semibold text-gray-800">
+                                  Order #{orderId ?? index + 1}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {formatOrderDate(created)}
+                                  {items.length > 0 ? ` · ${items.length} item${items.length > 1 ? "s" : ""}` : ""}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${getStatusTone(status)}`}
+                                >
+                                  {status}
+                                </span>
+                                <span className="font-semibold text-[#eb61a2]">
+                                  {formatPrice(o.totalAmount ?? o.total ?? o.amount)}
+                                </span>
+                              </div>
+                            </button>
+
+                            {isExpanded && (
+                              <div className="border-t border-gray-100 bg-white px-4 py-3 space-y-2">
+                                {items.length === 0 ? (
+                                  <p className="text-xs text-gray-500">No item details available.</p>
+                                ) : (
+                                  items.map((item, itemIdx) => {
+                                    const pid =
+                                      item?.productId ??
+                                      item?.product_id ??
+                                      item?.product?.id ??
+                                      null;
+                                    const name =
+                                      item?.productName ??
+                                      item?.product?.name ??
+                                      item?.name ??
+                                      (pid ? `Product #${pid}` : `Item ${itemIdx + 1}`);
+                                    const qty = item?.quantity ?? item?.qty ?? 1;
+                                    return (
+                                      <div
+                                        key={`${orderId}-${pid ?? itemIdx}`}
+                                        className="flex items-center justify-between gap-2 text-sm"
+                                      >
+                                        <div className="min-w-0">
+                                          {pid ? (
+                                            <Link
+                                              href={`/product_details?productId=${pid}`}
+                                              className="font-medium text-gray-800 hover:text-[#eb61a2] truncate block"
+                                            >
+                                              {name}
+                                            </Link>
+                                          ) : (
+                                            <p className="font-medium text-gray-800 truncate">{name}</p>
+                                          )}
+                                          <p className="text-xs text-gray-500">Qty {qty}</p>
+                                        </div>
+                                        {pid && (
+                                          <Link
+                                            href={`/product_details?productId=${pid}&orderId=${orderId}`}
+                                            className="shrink-0 text-xs font-medium text-[#eb61a2] hover:underline"
+                                          >
+                                            Review
+                                          </Link>
+                                        )}
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </div>

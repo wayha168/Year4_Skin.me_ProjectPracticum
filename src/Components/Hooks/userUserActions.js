@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
-import axios from "../..//app/lib/api/axiosConfig";
+import axios from "../../app/lib/api/axiosConfig";
 import useAuthContext from "../../app/lib/Authentication/AuthContext";
+import { useCartCount } from "../../app/lib/CartCountContext";
 
 function getErrorMessage(err, fallback) {
   const data = err?.response?.data;
@@ -14,6 +15,7 @@ function getErrorMessage(err, fallback) {
 
 const useUserActions = () => {
   const { user } = useAuthContext();
+  const { refreshCartCount, incrementCartCount } = useCartCount();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -39,6 +41,9 @@ const useUserActions = () => {
         headers: { "Content-Type": "application/json" },
       });
 
+      // Update bag badge immediately, then sync exact count from server
+      incrementCartCount(quantityNum);
+      refreshCartCount();
       toast.success("Added to your cart");
       return true;
     } catch (err) {

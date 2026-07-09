@@ -14,7 +14,17 @@ function getBrand(product) {
   return product?.brand?.name ?? "";
 }
 
-const ProductCard = ({ product, onAddToCart, onFavorite, discountedPrice }) => {
+const ProductCard = ({
+  product,
+  onAddToCart,
+  onFavorite,
+  onDiscountClick,
+  discountedPrice,
+  discountPercentage,
+  isFavorited = false,
+  compact = false,
+  priority = false,
+}) => {
   const router = useRouter();
   const brand = getBrand(product);
   const description = product?.description?.trim() || "No description";
@@ -29,19 +39,38 @@ const ProductCard = ({ product, onAddToCart, onFavorite, discountedPrice }) => {
           className="object-cover cursor-pointer hover:scale-[1.02] transition-transform duration-300"
           sizes="(max-width: 600px) 50vw, 200px"
           unoptimized
+          priority={priority}
+          loading={priority ? "eager" : "lazy"}
           onClick={() => router.push(`/product_details?productId=${product.id}`)}
         />
+        {discountPercentage != null && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDiscountClick?.(product);
+            }}
+            className="absolute top-2 left-2 bg-[#eb61a2] text-white text-[12px] font-bold px-2.5 py-0.5 rounded-full shadow hover:bg-[#c8538a] active:scale-95 transition-all z-10"
+            title="View promotion details"
+          >
+            {discountPercentage}%
+          </button>
+        )}
         <button
           type="button"
-          className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 text-[#e53e3e] hover:bg-red-50 transition-colors"
-          onClick={() => onFavorite(product.id)}
+          className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 hover:bg-red-50 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onFavorite?.(product.id);
+          }}
+          aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
         >
-          <FaHeart className="text-sm" />
+          <FaHeart className={`text-sm ${isFavorited ? "text-[#F83E94]" : "text-[#2F2F2F]"}`} />
         </button>
       </div>
 
       <div className="flex flex-col flex-1 p-4 gap-1 min-w-0 text-center">
-        {brand && (
+        {!compact && brand && (
           <span className="opacity-70 text-xs font-medium text-gray-500 uppercase tracking-wide truncate">
             {brand}
           </span>
@@ -49,18 +78,20 @@ const ProductCard = ({ product, onAddToCart, onFavorite, discountedPrice }) => {
         <h3 className="text-[1.15rem] font-bold text-gray-800 truncate" title={product?.name}>
           {product?.name || "No Name"}
         </h3>
-        <p className="text-xs text-gray-500 truncate opacity-80" title={description}>
-          {description}
-        </p>
-        <ProductPrice 
-          price={product?.price} 
-          discountedPrice={discountedPrice} 
+        {!compact && (
+          <p className="text-xs text-gray-500 truncate opacity-80" title={description}>
+            {description}
+          </p>
+        )}
+        <ProductPrice
+          price={product?.price}
+          discountedPrice={discountedPrice}
           centered
         />
         <button
           type="button"
           className="mt-3 w-full bg-[#d13e82] text-white text-sm font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#c32c70] transition-colors"
-          onClick={() => onAddToCart(product.id)}
+          onClick={() => onAddToCart?.(product.id)}
         >
           <FaCartPlus className="text-base" /> Add to Cart
         </button>

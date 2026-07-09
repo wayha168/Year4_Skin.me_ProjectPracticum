@@ -4,16 +4,39 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import useAuthContext from "../../app/lib/Authentication/AuthContext";
-import { FaArrowUp, FaEdit, FaImage, FaPaperclip, FaPlus, FaSpinner, FaTrashAlt } from "react-icons/fa";
+import { FaArrowUp, FaEdit, FaHeadset, FaImage, FaPaperclip, FaPlus, FaRobot, FaSpinner, FaTrashAlt, FaUser } from "react-icons/fa";
 import { FaWandSparkles } from "react-icons/fa6";
-import { CHATBOT_API_BASE } from "../../app/lib/api/config";
+import { CHATBOT_API_BASE, CHATBOT_WS_BASE } from "../../app/lib/api/config";
 
 const WELCOME_MESSAGE =
   "Hello! I’m Skin.me Assistant. I can help with skincare questions, product guidance, and skin image analysis.";
 
+const ADMIN_WELCOME_MESSAGE =
+  "You’re connected to Skin.me Support. Send a message and our team will reply here. You can switch back to AI Assistant anytime.";
+
 const ERROR_MESSAGE = "Sorry, I couldn't respond just now. Please try again in a moment and I’ll help you.";
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const CHAT_MODE_AI = "ai";
+const CHAT_MODE_ADMIN = "admin";
+
+function storageKeyForUser(userId) {
+  return `chatHistory_${userId}`;
+}
+
+function formatClock(dateLike) {
+  const date = dateLike ? new Date(dateLike) : new Date();
+  if (Number.isNaN(date.getTime())) {
+    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function titleFromMessages(messages = [], fallback = "New Chat") {
+  const firstUser = messages.find((m) => m.role === "user" && m.text?.trim());
+  if (!firstUser) return fallback;
+  return firstUser.text.trim().slice(0, 30);
+}
 
 function escapeHtml(value = "") {
   return value
@@ -167,6 +190,51 @@ function extractReply(payload) {
   return { text, images, productIds, options };
 }
 
+function createWelcomeChat(mode = CHAT_MODE_AI) {
+  const text = mode === CHAT_MODE_ADMIN ? ADMIN_WELCOME_MESSAGE : WELCOME_MESSAGE;
+  return {
+    id: `${mode}-${Date.now()}`,
+    title: mode === CHAT_MODE_ADMIN ? "Support chat" : "New Chat",
+    mode,
+    messages: [
+      {
+        id: "welcome",
+        role: "assistant",
+        sender: mode === CHAT_MODE_ADMIN ? "admin" : "ai",
+        text,
+        html: formatAssistantHtml(text),
+        images: [],
+        productIds: [],
+        options: [],
+        time: formatClock(),
+      },
+    ],
+  };
+}
+
+function mapBackendMessage(msg, index = 0) {
+  const content = typeof msg?.content === "string" ? msg.content : String(msg?.content || "");
+  const roleRaw = String(msg?.role || "").toLowerCase();
+  const senderRaw = String(msg?.sender || "").toLowerCase();
+  const isUser = roleRaw === "user" || senderRaw === "user";
+  const isAdmin =
+    senderRaw === "admin" ||
+    roleRaw === "admin" ||
+    (roleRaw === "assistant" && msg?.is_ai_response === false);
+
+  return {
+    id: `hist-${index}-${msg?.created_at || Date.now()}`,
+    role: isUser ? "user" : "assistant",
+    sender: isUser ? "user" : isAdmin ? "admin" : "ai",
+    text: content,
+    html: formatAssistantHtml(content),
+    images: [],
+    productIds: [...content.matchAll(/productId=(\d+)/gi)].map((m) => m[1]),
+    options: [],
+    time: formatClock(msg?.created_at),
+  };
+}
+
 export default function ChatAssistantPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuthContext();
@@ -181,119 +249,298 @@ export default function ChatAssistantPage() {
   const composerInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const endRef = useRef(null);
+  const wsRef = useRef(null);
+  const chatsRef = useRef([]);
 
-  // Chat state - stored in memory only (no localStorage)
   const [chats, setChats] = useState([]);
   const [currentChatId, setCurrentChatId] = useState(null);
+  const [chatMode, setChatMode] = useState(CHAT_MODE_AI);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [editingChatId, setEditingChatId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [adminConnected, setAdminConnected] = useState(false);
+  const [wsStatus, setWsStatus] = useState("idle");
 
   const currentChat = chats.find((c) => c.id === currentChatId);
   const messages = currentChat?.messages || [];
+  const activeMode = currentChat?.mode || chatMode;
+  const isAdminMode = activeMode === CHAT_MODE_ADMIN;
 
-  // Load chat history from localStorage
+  useEffect(() => {
+    chatsRef.current = chats;
+  }, [chats]);
+
+  const getUserDisplayName = useCallback(() => {
+    if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`;
+    return user?.name || user?.email || "";
+  }, [user]);
+
+  const persistChatsForUser = useCallback(
+    (nextChats) => {
+      if (!user?.id || typeof window === "undefined") return;
+      try {
+        const toSave = (nextChats || []).filter((chat) =>
+          chat.messages?.some((m) => m.role === "user"),
+        );
+        localStorage.setItem(storageKeyForUser(user.id), JSON.stringify(toSave));
+      } catch (err) {
+        console.error("Failed to persist chat history:", err);
+      }
+    },
+    [user?.id],
+  );
+
+  const saveChatToBackend = useCallback(
+    async (chatToSave, allChats = null) => {
+      if (!user?.id || !chatToSave) return;
+      const hasUserMessage = chatToSave.messages?.some((m) => m.role === "user");
+      if (!hasUserMessage) return;
+
+      const source = allChats || chatsRef.current;
+      const next = [...source];
+      const idx = next.findIndex((c) => c.id === chatToSave.id);
+      if (idx >= 0) next[idx] = chatToSave;
+      else next.unshift(chatToSave);
+      persistChatsForUser(next);
+
+      // Best-effort backend log of latest turn (non-blocking)
+      try {
+        const userMsgs = chatToSave.messages.filter((m) => m.role === "user");
+        const assistantMsgs = chatToSave.messages.filter((m) => m.role === "assistant" && m.id !== "welcome");
+        const lastUser = userMsgs[userMsgs.length - 1];
+        const lastAssistant = assistantMsgs[assistantMsgs.length - 1];
+        if (!lastUser) return;
+
+        await axios.post(
+          `${CHATBOT_API_BASE}/v1/chat/log`,
+          {
+            session_id: String(chatToSave.id),
+            message: lastUser.text || "",
+            reply: lastAssistant?.text || "",
+            user_id: String(user.id),
+            user_email: user.email || null,
+            user_name: getUserDisplayName() || null,
+            timestamp: new Date().toISOString(),
+          },
+          { headers: { "Content-Type": "application/json" }, timeout: 5000 },
+        );
+      } catch {
+        // local history is enough if log endpoint fails
+      }
+    },
+    [user, persistChatsForUser, getUserDisplayName],
+  );
+
+  const loadSessionHistory = useCallback(async (sessionId) => {
+    if (!sessionId) return null;
+    try {
+      const res = await axios.get(`${CHATBOT_API_BASE}/v1/chat/sessions/${sessionId}/history`, {
+        params: { limit: 200 },
+        timeout: 10000,
+      });
+      const list = Array.isArray(res?.data?.messages) ? res.data.messages : [];
+      if (!list.length) return null;
+      return list.map((msg, index) => mapBackendMessage(msg, index));
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Load chat history for this user_id (local + hydrate from backend when possible)
   useEffect(() => {
     if (typeof window === "undefined" || !user?.id) return;
-    
-    const storageKey = `chatHistory_${user.id}`;
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
+    let cancelled = false;
+
+    const load = async () => {
+      setHistoryLoaded(false);
+      let localChats = [];
       try {
-        const parsedHistory = JSON.parse(stored);
-        if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
-          setChats(parsedHistory);
-          if (!currentChatId) {
-            setCurrentChatId(parsedHistory[0].id);
+        const stored = localStorage.getItem(storageKeyForUser(user.id));
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            localChats = parsed.map((chat) => ({
+              ...chat,
+              mode: chat.mode === CHAT_MODE_ADMIN ? CHAT_MODE_ADMIN : CHAT_MODE_AI,
+            }));
           }
-          setHistoryLoaded(true);
-          return;
         }
       } catch (e) {
         console.error("Failed to parse chat history:", e);
       }
-    }
-    setHistoryLoaded(true);
-  }, [user?.id]);
 
-  // Initialize with welcome chat only if no history exists
+      // Hydrate each known session from backend history (keyed by session/user)
+      const hydrated = await Promise.all(
+        localChats.map(async (chat) => {
+          const remoteMessages = await loadSessionHistory(chat.id);
+          if (!remoteMessages?.length) return chat;
+          return {
+            ...chat,
+            messages: remoteMessages,
+            title: chat.title && chat.title !== "New Chat" ? chat.title : titleFromMessages(remoteMessages, chat.title),
+          };
+        }),
+      );
+
+      if (cancelled) return;
+
+      if (hydrated.length > 0) {
+        setChats(hydrated);
+        setCurrentChatId(hydrated[0].id);
+        setChatMode(hydrated[0].mode || CHAT_MODE_AI);
+        persistChatsForUser(hydrated);
+      } else {
+        const welcome = createWelcomeChat(CHAT_MODE_AI);
+        setChats([welcome]);
+        setCurrentChatId(welcome.id);
+        setChatMode(CHAT_MODE_AI);
+      }
+      setHistoryLoaded(true);
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, loadSessionHistory, persistChatsForUser]);
+
+  // Keep localStorage in sync whenever chats change for this user
   useEffect(() => {
-    if (historyLoaded && (!user?.id || chats.length === 0)) return;
-    if (chats.length > 0) return;
-    
-    const welcomeChat = {
-      id: Date.now().toString(),
-      title: "New Chat",
-      messages: [
-        {
-          id: "welcome",
+    if (!historyLoaded || !user?.id) return;
+    persistChatsForUser(chats);
+  }, [chats, historyLoaded, user?.id, persistChatsForUser]);
+
+  // Live admin WebSocket for current session
+  useEffect(() => {
+    if (!currentChatId || !isAdminMode) {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      setWsStatus("idle");
+      setAdminConnected(false);
+      return undefined;
+    }
+
+    const wsUrl = `${CHATBOT_WS_BASE}/v1/ws/chat/${encodeURIComponent(currentChatId)}?role=user`;
+    setWsStatus("connecting");
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => setWsStatus("connected");
+    ws.onclose = () => {
+      setWsStatus("disconnected");
+      setAdminConnected(false);
+    };
+    ws.onerror = () => setWsStatus("error");
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        const type = String(payload?.type || payload?.event || "").toLowerCase();
+        const role = String(payload?.role || payload?.sender || "").toLowerCase();
+        const content =
+          payload?.content || payload?.message || payload?.reply || payload?.text || "";
+
+        if (type.includes("admin") && (type.includes("connect") || type.includes("join") || type.includes("online"))) {
+          setAdminConnected(true);
+        }
+        if (type.includes("admin") && (type.includes("disconnect") || type.includes("leave") || type.includes("offline"))) {
+          setAdminConnected(false);
+        }
+        if (typeof payload?.admin_connected === "boolean") {
+          setAdminConnected(payload.admin_connected);
+        }
+
+        const looksLikeAdminMessage =
+          role === "admin" ||
+          type === "admin_reply" ||
+          type === "admin-message" ||
+          (type === "message" && role !== "user" && role !== "ai");
+
+        if (!looksLikeAdminMessage || !content) return;
+
+        const adminMessage = {
+          id: `admin-${Date.now()}`,
           role: "assistant",
-          text: WELCOME_MESSAGE,
-          html: formatAssistantHtml(WELCOME_MESSAGE),
+          sender: "admin",
+          text: String(content),
+          html: formatAssistantHtml(String(content)),
           images: [],
           productIds: [],
           options: [],
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        },
-      ],
-    };
-    setChats([welcomeChat]);
-    setCurrentChatId(welcomeChat.id);
-  }, [historyLoaded, user?.id, chats.length]);
+          time: formatClock(payload?.created_at),
+        };
 
-  // Create new chat (ChatGPT style - save previous first)
-  const createNewChat = async () => {
-    if (currentChat) {
-      await saveChatToBackend(currentChat);
-    }
-
-    const newChat = {
-      id: Date.now().toString(),
-      title: "New Chat",
-      messages: [
-        {
-          id: "welcome",
-          role: "assistant",
-          text: WELCOME_MESSAGE,
-          html: formatAssistantHtml(WELCOME_MESSAGE),
-          images: [],
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        },
-      ],
+        setChats((prev) =>
+          prev.map((chat) =>
+            chat.id === currentChatId
+              ? { ...chat, messages: [...chat.messages, adminMessage] }
+              : chat,
+          ),
+        );
+        setLoading(false);
+      } catch {
+        // ignore non-JSON frames
+      }
     };
 
+    return () => {
+      ws.close();
+      if (wsRef.current === ws) wsRef.current = null;
+    };
+  }, [currentChatId, isAdminMode]);
+
+  const createNewChat = async (mode = activeMode) => {
+    if (currentChat) await saveChatToBackend(currentChat);
+    const newChat = createWelcomeChat(mode);
     setChats((prev) => [newChat, ...prev]);
     setCurrentChatId(newChat.id);
+    setChatMode(mode);
     setInput("");
     setSelectedImage(null);
+    setAdminConnected(false);
   };
 
-  // Switch to existing chat
+  const switchChatMode = async (mode) => {
+    if (mode === activeMode) return;
+    if (currentChat) await saveChatToBackend(currentChat);
+
+    const existing = chats.find((c) => c.mode === mode);
+    if (existing) {
+      setCurrentChatId(existing.id);
+      setChatMode(mode);
+      setInput("");
+      setSelectedImage(null);
+      return;
+    }
+    await createNewChat(mode);
+  };
+
   const switchChat = async (chatId) => {
     if (currentChatId !== chatId && currentChat) {
       await saveChatToBackend(currentChat);
     }
+    const next = chats.find((c) => c.id === chatId);
     setCurrentChatId(chatId);
+    if (next?.mode) setChatMode(next.mode);
     setInput("");
     setSelectedImage(null);
   };
 
-  // Delete a chat
   const deleteChat = (chatId) => {
-    if (chats.length === 1) return; // Don't delete the last chat
-
+    if (chats.length === 1) return;
     const newChats = chats.filter((c) => c.id !== chatId);
     setChats(newChats);
-
+    persistChatsForUser(newChats);
     if (currentChatId === chatId) {
       setCurrentChatId(newChats[0].id);
+      setChatMode(newChats[0].mode || CHAT_MODE_AI);
     }
   };
 
-  // === Rename Chat (ChatGPT style) ===
   const startRenaming = (chat) => {
     setEditingChatId(chat.id);
     setEditingTitle(chat.title);
@@ -301,20 +548,11 @@ export default function ChatAssistantPage() {
 
   const saveRename = async () => {
     if (!editingChatId) return;
-
     const newTitle = editingTitle.trim() || "Untitled Chat";
-
-    setChats((prev) => prev.map((chat) => (chat.id === editingChatId ? { ...chat, title: newTitle } : chat)));
-
-    // Save the whole conversation with the updated title
-    const chatToUpdate = chats.find((c) => c.id === editingChatId);
-    if (chatToUpdate) {
-      await saveChatToBackend({
-        ...chatToUpdate,
-        title: newTitle,
-      });
-    }
-
+    const updated = chats.map((chat) => (chat.id === editingChatId ? { ...chat, title: newTitle } : chat));
+    setChats(updated);
+    const chatToUpdate = updated.find((c) => c.id === editingChatId);
+    if (chatToUpdate) await saveChatToBackend(chatToUpdate, updated);
     setEditingChatId(null);
     setEditingTitle("");
   };
@@ -322,55 +560,6 @@ export default function ChatAssistantPage() {
   const cancelRename = () => {
     setEditingChatId(null);
     setEditingTitle("");
-  };
-
-  // Save entire conversation to localStorage (chat history)
-  const saveChatToBackend = async (chatToSave) => {
-    if (!user?.id || !chatToSave) return;
-
-    // Only save chats that have real user interaction
-    const hasUserMessage = chatToSave.messages.some((m) => m.role === "user");
-    if (!hasUserMessage) return;
-
-    try {
-      // SSR safety check
-      if (typeof window === "undefined") return;
-
-      // Save to localStorage for persistence
-      const storageKey = `chatHistory_${user.id}`;
-      const stored = localStorage.getItem(storageKey);
-      const chats = stored ? JSON.parse(stored) : [];
-
-      // Update or add the chat
-      const existingIndex = chats.findIndex((c) => c.id === chatToSave.id);
-      if (existingIndex >= 0) {
-        chats[existingIndex] = chatToSave;
-      } else {
-        chats.push(chatToSave);
-      }
-
-      localStorage.setItem(storageKey, JSON.stringify(chats));
-
-      // Optional: Log to chatbot service (completely non-blocking)
-      // Note: Logging endpoint spec not provided, so we skip if it fails
-      // If you want to enable this, provide the exact API contract
-      // await axios.post(
-      //   `${CHATBOT_API_BASE}/v1/chat/log`,
-      //   {
-      //     user_id: Number(user.id) || user.id,
-      //     session_id: chatToSave.id,
-      //     title: chatToSave.title || "Untitled Chat",
-      //     message_count: chatToSave.messages.length,
-      //     timestamp: new Date().toISOString(),
-      //   },
-      //   {
-      //     headers: { "Content-Type": "application/json" },
-      //     timeout: 5000,
-      //   }
-      // );
-    } catch (err) {
-      console.error("Failed to save chat to localStorage:", err);
-    }
   };
 
   const selectedImagePreview = useMemo(
@@ -382,14 +571,13 @@ export default function ChatAssistantPage() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, selectedImagePreview]);
 
-  // Save current chat when leaving the page (whole conversation at once)
   useEffect(() => {
     return () => {
       if (currentChat && user?.id) {
         saveChatToBackend(currentChat);
       }
     };
-  }, [currentChat, user]);
+  }, [currentChat, user, saveChatToBackend]);
 
   const clearSelectedImage = () => {
     setSelectedImage(null);
@@ -415,93 +603,111 @@ export default function ChatAssistantPage() {
     setSelectedImage(file);
   };
 
-  // Chatbot API expects payload like:
-  // {
-  //   message: string,
-  //   history?: [{ role: string, content: string }],
-  //   use_llm?: boolean,
-  //   use_database?: boolean,
-  //   session_id?: string,
-  //   user_id?: string,
-  //   user_email?: string,
-  //   user_name?: string
-  // }
   const sendText = async (message) => {
-    if (!message?.trim()) {
-      throw new Error("Message cannot be empty");
-    }
-
-    const trimmedMessage = message.trim();
+    if (!message?.trim()) throw new Error("Message cannot be empty");
 
     const body = {
-      message: trimmedMessage,
+      message: message.trim(),
+      session_id: currentChatId || undefined,
+      user_id: user?.id != null ? String(user.id) : undefined,
+      user_email: user?.email || undefined,
+      user_name: getUserDisplayName() || undefined,
+      use_database: true,
     };
 
-    if (currentChatId) body.session_id = currentChatId;
-    if (user?.id) body.user_id = String(user.id);
-    if (user?.email) body.user_email = user.email;
-
-    const userName =
-      (user?.firstName && user?.lastName && `${user.firstName} ${user?.lastName}`) ||
-      user?.name ||
-      user?.email ||
-      "";
-    if (userName) body.user_name = userName;
-
-    // Build history from current chat messages (excluding welcome message)
     const history = messages
       .filter((m) => m.role !== "assistant" || m.id !== "welcome")
-      .map((m) => ({ role: m.role, content: m.text }));
+      .map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }))
+      .slice(-20);
     if (history.length > 0) body.history = history;
-
 
     const response = await axios.post(`${CHATBOT_API_BASE}/v1/chat`, body, {
       headers: { "Content-Type": "application/json" },
       timeout: 30000,
     });
 
+    if (typeof response?.data?.admin_connected === "boolean") {
+      setAdminConnected(response.data.admin_connected);
+    }
+
     return extractReply(response.data);
   };
 
   const sendImage = async (message, imageFile) => {
-    if (!message?.trim()) {
-      throw new Error("Message cannot be empty");
-    }
-    if (!imageFile) {
-      throw new Error("Image file is required");
-    }
+    if (!imageFile) throw new Error("Image file is required");
 
     const formData = new FormData();
-    formData.append("message", message.trim());
+    formData.append("message", (message || "").trim());
     if (currentChatId) formData.append("session_id", currentChatId);
-    if (user?.id) formData.append("user_id", String(user.id));
+    if (user?.id != null) formData.append("user_id", String(user.id));
     if (user?.email) formData.append("user_email", user.email);
-    if (user?.firstName && user?.lastName) {
-      formData.append("user_name", `${user.firstName} ${user.lastName}`);
-    } else if (user?.name) {
-      formData.append("user_name", user.name);
-    } else if (user?.email) {
-      formData.append("user_name", user.email);
-    }
+    const name = getUserDisplayName();
+    if (name) formData.append("user_name", name);
     formData.append("image", imageFile);
-
+    formData.append("use_database", "true");
 
     const response = await axios.post(`${CHATBOT_API_BASE}/v1/chat/with-image`, formData, {
       timeout: 45000,
     });
-
     return extractReply(response.data);
+  };
+
+  const sendAdminMessage = async (message) => {
+    const trimmed = message.trim();
+    if (!trimmed) throw new Error("Message cannot be empty");
+
+    // Persist user turn via chat API (also notifies backend session)
+    const body = {
+      message: trimmed,
+      session_id: currentChatId || undefined,
+      user_id: user?.id != null ? String(user.id) : undefined,
+      user_email: user?.email || undefined,
+      user_name: getUserDisplayName() || undefined,
+      use_llm: false,
+      use_database: false,
+    };
+
+    const response = await axios.post(`${CHATBOT_API_BASE}/v1/chat`, body, {
+      headers: { "Content-Type": "application/json" },
+      timeout: 30000,
+    });
+
+    if (typeof response?.data?.admin_connected === "boolean") {
+      setAdminConnected(response.data.admin_connected);
+    }
+
+    // Also push over websocket when connected (live admin inbox)
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(
+        JSON.stringify({
+          type: "user_message",
+          role: "user",
+          sender: "user",
+          content: trimmed,
+          session_id: currentChatId,
+          user_id: user?.id != null ? String(user.id) : undefined,
+        }),
+      );
+    }
+
+    return response.data;
   };
 
   const handleSend = async (presetText) => {
     const trimmed = (presetText ?? input).trim();
     if ((!trimmed && !selectedImage) || loading) return;
 
+    if (isAdminMode && selectedImage) {
+      alert("Image upload is available in AI Assistant mode. Please switch back to AI to analyze images.");
+      return;
+    }
+
     const userMessage = {
       id: `user-${Date.now()}`,
       role: "user",
+      sender: "user",
       text: trimmed || "Please analyze this image.",
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      time: formatClock(),
       localImage: selectedImagePreview,
     };
 
@@ -510,7 +716,10 @@ export default function ChatAssistantPage() {
         chat.id === currentChatId
           ? {
               ...chat,
-              title: chat.title === "New Chat" ? trimmed.slice(0, 30) : chat.title,
+              title:
+                chat.title === "New Chat" || chat.title === "Support chat"
+                  ? (trimmed || "Image analysis").slice(0, 30)
+                  : chat.title,
               messages: [...chat.messages, userMessage],
             }
           : chat,
@@ -524,20 +733,28 @@ export default function ChatAssistantPage() {
     clearSelectedImage();
 
     try {
+      if (isAdminMode) {
+        await sendAdminMessage(trimmed);
+        // Keep loading until admin replies over WS (or timeout)
+        setTimeout(() => setLoading(false), 1200);
+        return;
+      }
+
       const result = imageToSend
         ? await sendImage(trimmed || "Please analyze this skin image.", imageToSend)
         : await sendText(trimmed);
 
       const responseText = result.text || ERROR_MESSAGE;
-
       const assistantMessage = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
+        sender: "ai",
         text: responseText,
         html: formatAssistantHtml(responseText),
         images: result.images || [],
         productIds: result.productIds || [],
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        options: result.options || [],
+        time: formatClock(),
       };
 
       setChats((prevChats) =>
@@ -547,10 +764,7 @@ export default function ChatAssistantPage() {
       );
     } catch (error) {
       console.error("Chat assistant error:", error);
-
-      if (error?.response?.data) {
-        console.error("❌ API Response:", error.response.data);
-      }
+      if (error?.response?.data) console.error("❌ API Response:", error.response.data);
 
       const rawError =
         error?.response?.data?.message || error?.response?.data?.detail || error?.message || "";
@@ -572,11 +786,12 @@ export default function ChatAssistantPage() {
       const errorMessage = {
         id: `assistant-error-${Date.now()}`,
         role: "assistant",
+        sender: isAdminMode ? "admin" : "ai",
         text: displayError,
         html: formatAssistantHtml(displayError),
         images: [],
         productIds: [],
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        time: formatClock(),
       };
 
       setChats((prevChats) =>
@@ -585,10 +800,22 @@ export default function ChatAssistantPage() {
         ),
       );
     } finally {
-      setLoading(false);
+      if (!isAdminMode) setLoading(false);
       composerInputRef.current?.focus();
     }
   };
+
+  if (authLoading || !historyLoaded) {
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-[#6b7280]">
+        <FaSpinner className="mr-2 animate-spin text-[#eb61a2]" />
+        Loading your chat history...
+      </div>
+    );
+  }
+
+  const modeLabel = isAdminMode ? "Admin Support" : "AI Assistant";
+  const filteredHistory = chats.filter((c) => (c.mode || CHAT_MODE_AI) === activeMode);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,#fff8fb_0%,#fff4ef_45%,#f8f5f7_100%)] lg:flex-row">
@@ -596,22 +823,47 @@ export default function ChatAssistantPage() {
         <div className="rounded-[28px] border border-[#f0d7e3] bg-white/85 p-5 shadow-[0_16px_32px_rgba(83,33,58,0.06)] backdrop-blur">
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#eb61a2_0%,#ff9f6e_100%)] text-white shadow-[0_10px_20px_rgba(235,97,162,0.2)]">
-              <FaWandSparkles />
+              {isAdminMode ? <FaHeadset /> : <FaWandSparkles />}
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b5487f]">Skin.me</p>
-              <h1 className="text-lg font-bold text-[#1f2937]">AI Assistant</h1>
+              <h1 className="text-lg font-bold text-[#1f2937]">{modeLabel}</h1>
             </div>
           </div>
 
+          <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl bg-[#fff1f6] p-1">
+            <button
+              type="button"
+              onClick={() => switchChatMode(CHAT_MODE_AI)}
+              className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition ${
+                !isAdminMode ? "bg-white text-[#1f2937] shadow-sm" : "text-[#7c3a57] hover:bg-white/60"
+              }`}
+            >
+              <FaRobot />
+              AI Chat
+            </button>
+            <button
+              type="button"
+              onClick={() => switchChatMode(CHAT_MODE_ADMIN)}
+              className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition ${
+                isAdminMode ? "bg-white text-[#1f2937] shadow-sm" : "text-[#7c3a57] hover:bg-white/60"
+              }`}
+            >
+              <FaUser />
+              Admin
+            </button>
+          </div>
+
           <p className="text-sm leading-6 text-[#5b6473]">
-            Ask skincare questions, upload a skin image, and get a clearer answer in a friendly chat space.
+            {isAdminMode
+              ? "Chat directly with Skin.me support. Your messages are linked to your account."
+              : "Ask skincare questions, upload a skin image, and get a clearer answer in a friendly chat space."}
           </p>
 
           <div className="mt-6 space-y-3">
             <button
               type="button"
-              onClick={createNewChat}
+              onClick={() => createNewChat(activeMode)}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#1f2937] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#111827]"
             >
               <FaPlus />
@@ -623,9 +875,11 @@ export default function ChatAssistantPage() {
         {/* Chat History */}
         <div className="mt-5 rounded-[28px] border border-[#f0d7e3] bg-white/85 p-5 shadow-[0_16px_32px_rgba(83,33,58,0.06)] backdrop-blur flex-1 overflow-y-auto">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-[#1f2937]">Chat History</p>
+            <p className="text-sm font-semibold text-[#1f2937]">
+              {isAdminMode ? "Support History" : "Chat History"}
+            </p>
             <button
-              onClick={createNewChat}
+              onClick={() => createNewChat(activeMode)}
               className="text-xs px-3 py-1 rounded-full bg-[#eb61a2] text-white hover:bg-[#d94d8c] transition"
             >
               + New
@@ -633,7 +887,10 @@ export default function ChatAssistantPage() {
           </div>
 
           <div className="space-y-1">
-            {chats.map((chat) => (
+            {filteredHistory.length === 0 && (
+              <p className="text-xs text-[#6b7280] py-2">No conversations yet for this mode.</p>
+            )}
+            {filteredHistory.map((chat) => (
               <div
                 key={chat.id}
                 onClick={() => {
@@ -666,7 +923,6 @@ export default function ChatAssistantPage() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  {/* Pencil icon for rename on hover */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -701,10 +957,22 @@ export default function ChatAssistantPage() {
         <div className="shrink-0 border-b border-[#f0d7e3] bg-white/80 px-4 py-3 backdrop-blur sm:px-6">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold text-[#1f2937]">Skin.me Chat</h2>
+              <h2 className="text-xl font-bold text-[#1f2937]">
+                {isAdminMode ? "Chat with Admin" : "Skin.me AI Chat"}
+              </h2>
               <p className="text-sm text-[#6b7280]">
-                Professional skincare guidance with friendly, human-sounding replies.
+                {isAdminMode
+                  ? adminConnected
+                    ? "An admin is online for this session."
+                    : wsStatus === "connected"
+                      ? "Waiting for an admin to join..."
+                      : "Connecting to support..."
+                  : "Professional skincare guidance with friendly, human-sounding replies."}
               </p>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 rounded-full border border-[#f0d7e3] bg-[#fff8fb] px-3 py-1.5 text-xs font-semibold text-[#7c3a57]">
+              {isAdminMode ? <FaHeadset /> : <FaRobot />}
+              {modeLabel}
             </div>
           </div>
         </div>
@@ -729,14 +997,18 @@ export default function ChatAssistantPage() {
                         message.role === "user" ? "bg-white/20 text-white" : "bg-[#fff1f6] text-[#c03f82]"
                       }`}
                     >
-                      {message.role === "user" ? "You" : "AI"}
+                      {message.role === "user" ? "You" : message.sender === "admin" ? "AD" : "AI"}
                     </div>
                     <span
                       className={`text-xs font-semibold uppercase tracking-[0.2em] ${
                         message.role === "user" ? "text-white/75" : "text-[#b5487f]"
                       }`}
                     >
-                      {message.role === "user" ? "Customer" : "Assistant"}
+                      {message.role === "user"
+                        ? "Customer"
+                        : message.sender === "admin"
+                          ? "Admin"
+                          : "Assistant"}
                     </span>
                   </div>
 
@@ -801,7 +1073,9 @@ export default function ChatAssistantPage() {
                 <div className="max-w-xl rounded-[28px] border border-[#f0d7e3] bg-white px-5 py-4 shadow-[0_14px_32px_rgba(48,20,39,0.07)]">
                   <div className="flex items-center gap-3 text-sm text-[#64748b]">
                     <FaSpinner className="animate-spin text-[#eb61a2]" />
-                    Skin.me Assistant is preparing a helpful reply...
+                    {isAdminMode
+                      ? "Waiting for admin reply..."
+                      : "Skin.me Assistant is preparing a helpful reply..."}
                   </div>
                 </div>
               </div>
@@ -842,8 +1116,10 @@ export default function ChatAssistantPage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fff1f6] text-[#c03f82] transition hover:bg-[#ffe6f1]"
+                  disabled={isAdminMode}
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fff1f6] text-[#c03f82] transition hover:bg-[#ffe6f1] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Upload skin image"
+                  title={isAdminMode ? "Image upload is available in AI mode" : "Upload skin image"}
                 >
                   <FaImage />
                 </button>
@@ -862,7 +1138,11 @@ export default function ChatAssistantPage() {
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   placeholder={
-                    selectedImage ? "Add a note for this skin image..." : "Message Skin.me Assistant..."
+                    isAdminMode
+                      ? "Message Skin.me support..."
+                      : selectedImage
+                        ? "Add a note for this skin image..."
+                        : "Message Skin.me Assistant..."
                   }
                   className="max-h-40 min-h-[48px] flex-1 resize-none bg-transparent px-2 py-3 text-sm text-[#1f2937] outline-none placeholder:text-[#94a3b8]"
                   onKeyDown={(event) => {

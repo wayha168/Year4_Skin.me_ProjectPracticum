@@ -1,7 +1,10 @@
 // src/Components/Footer/Footer.jsx
 // ============================================
+"use client";
+
 import Image from "next/image";
-import { memo } from "react";
+import { memo, useCallback } from "react";
+import { openDiscountModal } from "../DiscountModal/openDiscountModal";
 
 const Footer = memo(() => {
   const Aba = "/assets/ABA.png";
@@ -14,13 +17,24 @@ const Footer = memo(() => {
   const PINTEREST = "/assets/pinterest_icon.png";
   const INSTARGRAM = "/assets/instargram_icon.png";
 
+  const handlePromoClick = useCallback(() => {
+    openDiscountModal();
+  }, []);
+
   return (
     <div className="bg-[#0a3d3f] text-white pb-[2rem] mt-0 max-[770px]:pb-[7rem] relative z-[1]">
       {/* TOP BANNER */}
       <div className="mb-[2rem] flex justify-between items-center h-12 w-full border-b border-white/20 bg-black mt-0">
         <div className="flex justify-between items-center w-full max-w-[1280px] mx-auto px-4">
           <span className="text-xl md:text-2xl font-bold text-[#eb61a1]">SKIN.ME</span>
-          <span className="text-base md:text-lg font-medium font-sans">Up to 25% off</span>
+          <button
+            type="button"
+            onClick={handlePromoClick}
+            className="text-base md:text-lg font-medium font-sans text-white hover:text-[#eb61a1] transition-colors cursor-pointer underline-offset-4 hover:underline"
+            aria-label="View promotion details"
+          >
+            Up to 25% off
+          </button>
         </div>
       </div>
 
@@ -111,4 +125,4 @@ const Footer = memo(() => {
 
 Footer.displayName = "Footer";
 
-export default Footer
+export default Footer;

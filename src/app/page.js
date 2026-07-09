@@ -1,19 +1,71 @@
 "use client";
 
-import React, { useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useEffect, useCallback, useMemo, useRef, useState, Suspense } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
 import axiosAuth from "./lib/api/axiosConfig.js";
 import Navbar from "../Components/Navbar/Navbar.jsx";
-import Footer from "../Components/Footer/Footer.jsx";
 import useUserActions from "../Components/Hooks/userUserActions.js";
 import useAuthContext from "./lib/Authentication/AuthContext.jsx";
 import LoginFirst from "../Components/LoginFirst/LoginFirst.js";
-import { FaCartPlus, FaHeart, FaChevronLeft, FaChevronRight, FaChevronDown } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaChevronDown } from "react-icons/fa";
 import { getProductImageUrl } from "./lib/productImage.js";
 import { formatPrice } from "./lib/formatPrice.js";
-import ProductPrice from "../Components/ProductPrice/ProductPrice";
+import ProductCard from "../Components/ProductCard/ProductCard.jsx";
+
+const Footer = dynamic(() => import("../Components/Footer/Footer.jsx"), { ssr: false });
+
+const HOME_PRODUCT_LIMIT = 10;
+const FEEDBACK_LIMIT = 7;
+
+const FALLBACK_REVIEWERS = [
+  { image: "/assets/ImagesInRecommendation/boss_image.png", name: "Boss Glow", role: "Influencer" },
+  {
+    image: "/assets/ImagesInRecommendation/none_sence_image.png",
+    name: "None Sense",
+    role: "Skincare Expert",
+  },
+  { image: "/assets/ImagesInRecommendation/ohio_image.png", name: "Ohio Fresh", role: "Beauty Blogger" },
+  { image: "/assets/ImagesInRecommendation/obey_iamge.png", name: "Obey Clean", role: "Dermatologist" },
+  {
+    image: "/assets/ImagesInRecommendation/bro_jirim_image.png",
+    name: "Bro Jirim",
+    role: "Content Creator",
+  },
+  {
+    image: "/assets/ImagesInRecommendation/phol_sophea_image.png",
+    name: "Phol Sophea",
+    role: "Makeup Artist",
+  },
+  { image: "/assets/ImagesInRecommendation/profile_image.png", name: "Profile Pro", role: "Influencer" },
+];
+
+function timeAgo(dateString) {
+  if (!dateString) return "Recently";
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks} week${weeks !== 1 ? "s" : ""} ago`;
+  }
+  const months = Math.floor(diffDays / 30);
+  return `${months} month${months !== 1 ? "s" : ""} ago`;
+}
+
+function extractPromoPercent(promo) {
+  const raw =
+    promo?.discountPercentage ??
+    promo?.discount_percentage ??
+    promo?.discountPercent ??
+    promo?.discount_percent ??
+    null;
+  return typeof raw === "number" && raw > 0 ? Math.round(raw) : null;
+}
 
 function useScrollAnimation() {
   const ref = useRef(null);
@@ -30,7 +82,7 @@ function useScrollAnimation() {
           observer.unobserve(element);
         }
       },
-      { threshold: 0.02, rootMargin: "0px 0px -100px 0px" },
+      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" },
     );
 
     observer.observe(element);
@@ -57,19 +109,15 @@ function useDragScroll(ref) {
   );
 
   const handleMouseLeave = useCallback(() => {
-    if (!ref.current) return;
-    if (isDragging.current) {
-      isDragging.current = false;
-      ref.current.style.cursor = "grab";
-    }
+    if (!ref.current || !isDragging.current) return;
+    isDragging.current = false;
+    ref.current.style.cursor = "grab";
   }, [ref]);
 
   const handleMouseUp = useCallback(() => {
-    if (!ref.current) return;
-    if (isDragging.current) {
-      isDragging.current = false;
-      ref.current.style.cursor = "grab";
-    }
+    if (!ref.current || !isDragging.current) return;
+    isDragging.current = false;
+    ref.current.style.cursor = "grab";
   }, [ref]);
 
   const handleMouseMove = useCallback(
@@ -80,8 +128,7 @@ function useDragScroll(ref) {
       const x = e.pageX - container.offsetLeft;
       const walk = (x - startX.current) * 1.5;
       const maxScroll = container.scrollWidth - container.clientWidth;
-      const newScrollLeft = scrollLeft.current - walk;
-      container.scrollLeft = Math.max(0, Math.min(newScrollLeft, maxScroll));
+      container.scrollLeft = Math.max(0, Math.min(scrollLeft.current - walk, maxScroll));
     },
     [ref],
   );
@@ -94,83 +141,175 @@ function useDragScroll(ref) {
   };
 }
 
-export default function Page() {
+function HomePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
   const { user } = useAuthContext();
   const { addToCart, addToFavorite, removeFavorite } = useUserActions();
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [productsFeedback, setProductsFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isClient, setIsClient] = useState(false);
-  const [noSectionAnimation, setNoSectionAnimation] = useState(false);
-  const [hasSectionAnimated, setHasSectionAnimated] = useState(false);
   const [discountedPrices, setDiscountedPrices] = useState({});
   const [discountPercentages, setDiscountPercentages] = useState({});
   const [promoModal, setPromoModal] = useState(null);
   const [promoLoading, setPromoLoading] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState(new Set());
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [expandedFeedbackId, setExpandedFeedbackId] = useState(null);
 
   const loginFirst = useMemo(() => new LoginFirst(user, router.push), [user, router.push]);
-
-  const scrollToProducts = useCallback(() => {
-    const section = document.getElementById("product");
-    if (section) {
-      const navbarHeight = document.querySelector("nav")?.offsetHeight || 0;
-
-      const extraOffset = -120;
-
-      const y = section.getBoundingClientRect().top + window.scrollY - navbarHeight - extraOffset;
-
-      window.scrollTo({ top: y, behavior: "smooth" });
-    }
-  }, []);
 
   const testimonialsRef = useRef(null);
   const leftGradientRef = useRef(null);
   const rightGradientRef = useRef(null);
   const dragScrollHandlers = useDragScroll(testimonialsRef);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-  const [expandedFeedbackId, setExpandedFeedbackId] = useState(null);
   const [overviewRef, overviewVisible] = useScrollAnimation();
   const [productRef, productVisible] = useScrollAnimation();
   const [recommendRef, recommendVisible] = useScrollAnimation();
   const [aboutRef, aboutVisible] = useScrollAnimation();
 
-  const timeAgo = (dateString) => {
-    if (!dateString) return "Recently";
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
-    if (diffDays < 30)
-      return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) !== 1 ? "s" : ""} ago`;
-    return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) !== 1 ? "s" : ""} ago`;
-  };
+  const scrollToProducts = useCallback(() => {
+    const section = document.getElementById("product");
+    if (!section) return;
+    const navbarHeight = document.querySelector("nav")?.offsetHeight || 80;
+    const y = section.getBoundingClientRect().top + window.scrollY - navbarHeight - 16;
+    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+  }, []);
 
   useEffect(() => {
-    const handlePageShow = (event) => {
-      if (event.persisted) {
-        setNoSectionAnimation(true);
-        setHasSectionAnimated(true);
+    if (searchParams.get("scroll") === "product") scrollToProducts();
+  }, [searchParams, scrollToProducts]);
+
+  // Parallel homepage data fetch (products + categories + feedback)
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadHomeData = async () => {
+      setLoading(true);
+      try {
+        const [productsRes, categoriesRes, feedbackRes] = await Promise.all([
+          axiosAuth.get("/products/all"),
+          axiosAuth.get("/categories/all-categories"),
+          axiosAuth.get("/feedback/product/all-feedback"),
+        ]);
+
+        if (cancelled) return;
+
+        setProducts(productsRes?.data?.data || []);
+        setCategories(categoriesRes?.data?.data || []);
+
+        const feedbackData = feedbackRes?.data?.data;
+        const feedbackItems = Array.isArray(feedbackData?.content)
+          ? feedbackData.content
+          : Array.isArray(feedbackData)
+            ? feedbackData
+            : [];
+        setProductsFeedback(feedbackItems);
+      } catch (err) {
+        console.error("Error loading homepage data:", err);
+        if (!cancelled) {
+          setProducts([]);
+          setCategories([]);
+          setProductsFeedback([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
-    window.addEventListener("pageshow", handlePageShow);
-    return () => window.removeEventListener("pageshow", handlePageShow);
+    loadHomeData();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Control gradient visibility based on scroll position
+  // One bulk promotions call instead of 2 requests per product
+  useEffect(() => {
+    const homeProducts = products.slice(0, HOME_PRODUCT_LIMIT);
+    if (!homeProducts.length) {
+      setDiscountedPrices({});
+      setDiscountPercentages({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchDiscounts = async () => {
+      const priceMap = {};
+      const pctMap = {};
+      const productById = new Map(homeProducts.map((p) => [Number(p.id), p]));
+
+      try {
+        const res = await axiosAuth.get("/promotions/active/type/PRODUCT_DISCOUNT");
+        const activePromos = res?.data?.data || [];
+
+        activePromos.forEach((promo) => {
+          const pid = Number(promo.productId ?? promo.product?.id);
+          if (!pid || !productById.has(pid)) return;
+
+          const pct = extractPromoPercent(promo);
+          if (!pct) return;
+
+          const product = productById.get(pid);
+          const price = Number(product?.price || 0);
+          pctMap[pid] = pct;
+          if (price > 0) priceMap[pid] = Number((price * (1 - pct / 100)).toFixed(2));
+        });
+      } catch (err) {
+        console.warn("[Home] Could not load active promotions", err);
+      }
+
+      if (!cancelled) {
+        setDiscountedPrices(priceMap);
+        setDiscountPercentages(pctMap);
+      }
+    };
+
+    fetchDiscounts();
+    return () => {
+      cancelled = true;
+    };
+  }, [products]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setFavoriteIds(new Set());
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchUserFavorites = async () => {
+      try {
+        const res = await axiosAuth.get(`/favorites/user/${user.id}`, { withCredentials: true });
+        if (cancelled) return;
+        const favs = res.data?.data || [];
+        setFavoriteIds(
+          new Set(
+            favs
+              .map((f) => f.product?.id ?? f.productId ?? f.id)
+              .filter(Boolean)
+              .map(Number),
+          ),
+        );
+      } catch {
+        if (!cancelled) setFavoriteIds(new Set());
+      }
+    };
+
+    fetchUserFavorites();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   useEffect(() => {
     const container = testimonialsRef.current;
     const leftGradient = leftGradientRef.current;
     const rightGradient = rightGradientRef.current;
-
     if (!container || !leftGradient || !rightGradient) return;
 
     const updateGradients = () => {
@@ -181,13 +320,11 @@ export default function Page() {
 
       leftGradient.style.opacity = isAtLeft ? "0" : "1";
       rightGradient.style.opacity = isAtRight ? "0" : "1";
-
       setCanScrollLeft(!isAtLeft);
       setCanScrollRight(!isAtRight);
     };
 
-    container.addEventListener("scroll", updateGradients);
-    // Run after render + data load
+    container.addEventListener("scroll", updateGradients, { passive: true });
     const raf = requestAnimationFrame(updateGradients);
 
     return () => {
@@ -195,151 +332,6 @@ export default function Page() {
       cancelAnimationFrame(raf);
     };
   }, [productsFeedback.length]);
-
-  useEffect(() => {
-    if (searchParams.get("scroll") === "product") {
-      scrollToProducts();
-    }
-  }, [searchParams, scrollToProducts]);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await axiosAuth.get("/categories/all-categories");
-        setCategories(res?.data?.data || []);
-      } catch (err) {
-        console.error("Error fetching categories:", err);
-        setCategories([]);
-      }
-    };
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    const fetchProductsFeedback = async () => {
-      try {
-        const res = await axiosAuth.get("/feedback/product/all-feedback");
-        const feedbackData = res?.data?.data;
-        const feedbackItems = Array.isArray(feedbackData?.content)
-          ? feedbackData.content
-          : Array.isArray(feedbackData)
-            ? feedbackData
-            : [];
-        setProductsFeedback(feedbackItems);
-      } catch (err) {
-        console.error("Error fetching products feedback:", err);
-        setProductsFeedback([]);
-      }
-    };
-
-    fetchProductsFeedback();
-  }, []);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      try {
-        const res = await axiosAuth.get("/products/all");
-        setProducts(res?.data?.data || []);
-      } catch (err) {
-        console.error("Error fetching products:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
-  }, []);
-
-  // Fetch discounted prices + discount percentages for badges
-  useEffect(() => {
-    const fetchDiscounts = async () => {
-      if (!products.length) {
-        setDiscountedPrices({});
-        setDiscountPercentages({});
-        return;
-      }
-      const productIds = [...new Set(products.map((p) => p.id).filter(Boolean))];
-      const promises = productIds.map(async (pid) => {
-        let discounted = null;
-        let pct = null;
-        try {
-          const [priceRes, promoRes] = await Promise.all([
-            axiosAuth.get(`/promotions/product/${pid}/discounted-price`).catch(() => ({ data: null })),
-            axiosAuth.get(`/promotions/product/${pid}`).catch(() => ({ data: null })),
-          ]);
-
-          // discounted price
-          const data = priceRes?.data?.data;
-          if (typeof data === "number") discounted = data;
-          else if (data && typeof data === "object") {
-            discounted =
-              data.discountedPrice ??
-              data.price ??
-              data.finalPrice ??
-              data.discounted_price ??
-              data.value ??
-              null;
-          }
-
-          // promotion percentage for badge
-          const promo = promoRes?.data?.data;
-          if (promo && typeof promo === "object") {
-            const raw =
-              promo.discountPercentage ??
-              promo.discount_percentage ??
-              promo.discountPercent ??
-              promo.discount_percent ??
-              null;
-            if (typeof raw === "number" && raw > 0) pct = Math.round(raw);
-          }
-        } catch {
-          // ignore individual errors
-        }
-        return [
-          pid,
-          { discountedPrice: discounted != null ? Number(discounted) : null, discountPercentage: pct },
-        ];
-      });
-      const results = await Promise.all(promises);
-      const priceMap = {};
-      const pctMap = {};
-      results.forEach(([id, info]) => {
-        if (info.discountedPrice != null) priceMap[id] = info.discountedPrice;
-        if (info.discountPercentage != null) pctMap[id] = info.discountPercentage;
-      });
-      setDiscountedPrices(priceMap);
-      setDiscountPercentages(pctMap);
-    };
-    fetchDiscounts();
-  }, [products]);
-
-  // Fetch user's favorites to show correct heart color
-  useEffect(() => {
-    const fetchUserFavorites = async () => {
-      if (!user?.id) {
-        setFavoriteIds(new Set());
-        return;
-      }
-      try {
-        const res = await axiosAuth.get(`/favorites/user/${user.id}`, { withCredentials: true });
-        const favs = res.data?.data || [];
-        const ids = new Set(
-          favs
-            .map((f) => f.product?.id ?? f.productId ?? f.id)
-            .filter(Boolean)
-            .map(Number),
-        );
-        setFavoriteIds(ids);
-      } catch {
-        setFavoriteIds(new Set());
-      }
-    };
-    fetchUserFavorites();
-  }, [user]);
 
   const handleFavoriteClick = useCallback(
     async (productId) => {
@@ -365,7 +357,7 @@ export default function Page() {
           setFavoriteIds((prev) => new Set(prev).add(pid));
         }
       } catch {
-        // error already handled in hook
+        // handled in hook
       }
     },
     [user, loginFirst, router, addToFavorite, removeFavorite, favoriteIds],
@@ -383,13 +375,12 @@ export default function Page() {
     [user, loginFirst, router, addToCart],
   );
 
-  // Open promotion details modal for a product (lazy fetch full promo data)
   const openPromotionModal = useCallback(async (product) => {
     setPromoLoading(true);
+    setPromoModal({ product, promotion: null });
     try {
       const res = await axiosAuth.get(`/promotions/product/${product.id}`);
-      const promotion = res?.data?.data || null;
-      setPromoModal({ product, promotion });
+      setPromoModal({ product, promotion: res?.data?.data || null });
     } catch {
       setPromoModal({ product, promotion: null });
     } finally {
@@ -397,174 +388,174 @@ export default function Page() {
     }
   }, []);
 
-  const featuredProduct = products[0];
-  const overviewProducts = products.slice(0, 3);
-  const productById = useMemo(() => new Map(products.map((product) => [product?.id, product])), [products]);
-  const recommendationFeedback = productsFeedback
-    .filter((feedback) => feedback?.visibleOnFrontend !== false)
-    .slice(0, 7);
-  const overviewFinalVisible = overviewVisible || hasSectionAnimated;
-  const productFinalVisible = productVisible || hasSectionAnimated;
-  const recommendFinalVisible = recommendVisible || hasSectionAnimated;
-  const aboutFinalVisible = aboutVisible || hasSectionAnimated;
+  const scrollTestimonials = useCallback((direction) => {
+    const container = testimonialsRef.current;
+    const cards = container?.querySelectorAll(".testimonial-card");
+    if (!container || !cards?.length) return;
 
-  const ImagesInRecommendation = [
-    { image: "/assets/ImagesInRecommendation/boss_image.png", name: "Boss Glow", role: "Influencer" },
-    {
-      image: "/assets/ImagesInRecommendation/none_sence_image.png",
-      name: "None Sense",
-      role: "Skincare Expert",
-    },
-    { image: "/assets/ImagesInRecommendation/ohio_image.png", name: "Ohio Fresh", role: "Beauty Blogger" },
-    { image: "/assets/ImagesInRecommendation/obey_iamge.png", name: "Obey Clean", role: "Dermatologist" },
-    {
-      image: "/assets/ImagesInRecommendation/bro_jirim_image.png",
-      name: "Bro Jirim",
-      role: "Content Creator",
-    },
-    {
-      image: "/assets/ImagesInRecommendation/phol_sophea_image.png",
-      name: "Phol Sophea",
-      role: "Makeup Artist",
-    },
-    { image: "/assets/ImagesInRecommendation/profile_image.png", name: "Profile Pro", role: "Influencer" },
-  ];
-  const averagePrice = products.length
-    ? products.reduce((sum, product) => sum + Number(product?.price || 0), 0) / products.length
-    : 0;
-  const categoryItems = categories;
-  const categoryTextStyles = [
-    "font-bold text-[#FF0000] italic",
-    "font-extrabold text-[#854DFF]",
-    "font-medium text-white",
-    "font-bold text-[#DB14CD] uppercase",
-  ];
-  const stats = [
-    { number: `${products.length}+`, label: "Products Available" },
-    { number: `${categories.length}`, label: "Categories" },
-    { number: formatPrice(averagePrice), label: "Average Price" },
-  ];
+    const gap = 24;
+    const scrollAmount = cards[0].offsetWidth + gap;
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    const next =
+      direction === "left"
+        ? Math.max(0, container.scrollLeft - scrollAmount)
+        : Math.min(maxScroll, container.scrollLeft + scrollAmount);
+
+    container.scrollTo({ left: next, behavior: "smooth" });
+  }, []);
+
+  const homeProducts = useMemo(() => products.slice(0, HOME_PRODUCT_LIMIT), [products]);
+  const overviewProducts = useMemo(() => products.slice(0, 3), [products]);
+  const aboutProducts = useMemo(() => products.slice(0, 4), [products]);
+  const productById = useMemo(() => new Map(products.map((p) => [p?.id, p])), [products]);
+
+  const recommendationFeedback = useMemo(
+    () => productsFeedback.filter((f) => f?.visibleOnFrontend !== false).slice(0, FEEDBACK_LIMIT),
+    [productsFeedback],
+  );
+
+  const averagePrice = useMemo(() => {
+    if (!products.length) return 0;
+    return products.reduce((sum, p) => sum + Number(p?.price || 0), 0) / products.length;
+  }, [products]);
+
+  const stats = useMemo(
+    () => [
+      { number: `${products.length}+`, label: "Products Available" },
+      { number: `${categories.length}`, label: "Categories" },
+      { number: formatPrice(averagePrice), label: "Average Price" },
+    ],
+    [products.length, categories.length, averagePrice],
+  );
+
+  const sectionClass = (visible) =>
+    `transition-all duration-700 ease-out ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`;
 
   return (
     <div className="overflow-x-hidden bg-[#F7F7F7]">
-      {isClient && <Navbar alwaysVisible={true} />}
+      <Navbar alwaysVisible={true} />
 
-      {/* HERO SECTION */}
-      <div className="flex flex-col md:flex-row justify-center items-center w-full min-h-screen bg-[#EE90B9] overflow-hidden relative px-4 sm:px-8 md:px-16 py-0 max-[767px]:gap-0 md:gap-8">
-        <div className="flex flex-col justify-center w-full md:w-1/2 text-center md:text-left text-[#1f2937] z-[2] max-[767px]:mt-[10vh]">
-          <p className="text-[57px] font-bold text-[#2F2F2F] max-[992px]:text-[40px] max-[600px]:text-[33px]">
+      {/* HERO — pt-20 clears fixed header (h-20) so content stays aligned */}
+      <section className="relative flex flex-col md:flex-row items-center justify-center w-full min-h-[100svh] bg-[#EE90B9] px-4 sm:px-8 md:px-16 pt-28 pb-16 md:pt-24 md:pb-10 gap-8 md:gap-10">
+        <div className="flex flex-col justify-center w-full md:w-1/2 text-center md:text-left z-[2]">
+          <h1 className="text-[2rem] sm:text-[2.5rem] md:text-[3.5rem] font-bold text-[#2F2F2F] leading-tight">
             WELCOME TO SKIN.ME
-          </p>
-          <p className="tracking-[-0.05em] text-[44px] font-semibold text-white mb-2 max-[992px]:text-[28px] max-[600px]:text-[22px]">
+          </h1>
+          <p className="tracking-tight text-xl sm:text-2xl md:text-[2.75rem] font-semibold text-white mt-2 mb-3">
             Most Essential Skin Care Product
           </p>
-          <p className="opacity-[0.8] text-[20px] text-[#4c4c4c] mb-4 max-[992px]:text-[16px] max-[600px]:text-sm">
+          <p className="text-sm sm:text-base md:text-xl text-[#4c4c4c]/opacity-80 mb-6">
             Give you the best skincare | product is our mission.
           </p>
           <div>
             <button
+              type="button"
               onClick={scrollToProducts}
-              className="opacity-[1] text-[#F2F2F2] text-[30px] font-semibold px-[50px] py-3.5 bg-[#2F2F2F] rounded-[7px] border-none cursor-pointer transition-all duration-200 hover:bg-[#000000] active:bg-[#515151] max-[992px]:text-lg  max-[992px]:px-10 max-[992px]:py-3 max-[600px]:text-lg max-[600px]:px-[30px] max-[600px]:py-2.5"
+              className="text-white text-lg sm:text-xl md:text-[1.75rem] font-semibold px-8 sm:px-12 py-2.5 sm:py-3.5 bg-[#2F2F2F] rounded-lg border-none cursor-pointer transition-colors duration-200 hover:bg-black"
             >
               Shop Now
             </button>
           </div>
         </div>
 
-        <div className="w-[20rem] h-[25rem] md:w-1/2 md:h-[50rem] md:mt-4 z-[4] rounded-[30px] overflow-hidden flex items-center justify-center">
-          {/* {featuredProduct && ( */}
+        <div className="relative w-full max-w-[20rem] md:max-w-none md:w-1/2 h-[22rem] md:h-[min(42rem,calc(100svh-8rem))] flex items-center justify-center">
           <Image
             sizes="(max-width: 768px) 20rem, 50vw"
             priority
-            // src={getProductImageUrl(featuredProduct)}
             src="/assets/Banner/FeatureBanner.jpg"
-            alt={"skin product"}
+            alt="Skin.me featured product"
             width={500}
             height={650}
-            quality={85}
-            className="max-w-full max-h-full object-contain z-[5] rounded-[15px] mt-8 max-[767px]:-mt-8 box-shadow-[0_4px_12px_rgba(235,97,162,0.3)] bg-opacity-20 "
+            quality={75}
+            className="max-w-full max-h-full object-contain rounded-2xl"
             fetchPriority="high"
             unoptimized
           />
-          {/* )} */}
         </div>
-      </div>
+      </section>
 
-      {/* OVERVIEW SECTION */}
-      <div
-        ref={overviewRef}
-        className={`py-[4rem] max-[1350px]:mb-[-0.75rem] max-[1350px]:mt-[0.75rem] max-[1300px]:mb-[-7.35rem] max-[1300px]:mt-[2.35rem] max-[1300px]:mb-[-5.35rem] max-[1100px]:mb-[-12.5rem] max-[990px]:mb-[-22.5rem]  max-[990px]:mt-[-2.5rem]    relative max-[1390px]:[transform:scale(0.95)] max-[1300px]:[transform:scale(0.85)] max-[1250px]:[transform:scale(0.83)] max-[1200px]:[transform:scale(0.80)] max-[1150px]:[transform:scale(0.75)] max-[1100px]:[transform:scale(0.70)] max-[660px]:[transform:scale(0.65)] origin-top ${noSectionAnimation ? "" : "transition-all duration-1000 ease-out"} ${overviewFinalVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-32"}`}
-      >
-        <div className="flex flex-row items-center justify-center relative gap-[5rem] max-[990px]:mt-16 max-[990px]:flex-col max-[990px]:items-center max-[990px]:gap-[2rem]">
-          <div className="flex flex-col justify-center items-start w-[35rem] mx-0 ml-4 z-[5] flex-shrink-0 max-[990px]:items-center self-center mt-[1rem]">
-            <div className="text-[#eb61a1] text-[50px] font-bold font-[Arial,Helvetica,sans-serif] text-left w-full max-[990px]:text-center">
-              LET'S HAVE A LOOK
-            </div>
-            <div className="mb-[1rem] text-black text-[25px] font-medium font-[Arial,Helvetica,sans-serif] text-left w-full max-[1390px]:mb-[0.75rem] max-[1300px]:mb-[0.75rem] max-[1250px]:mb-[0.5rem] max-[1200px]:mb-[0.5rem] max-[1150px]:mb-[0.5rem]  max-[660px]:mb-[1rem] max-[990px]:text-center">
-              This is the overview about our products that you can spend a few minutes to see how they look.
-            </div>
-            <div className="flex flex-row gap-[2rem]">
-              <div className="flex flex-row gap-[2rem] flex-shrink-0 max-[990px]:justify-center max-[990px]:items-center">
-                {overviewProducts.slice(0, 2).map((product) => (
-                  <Image
-                    key={product.id}
-                    src={getProductImageUrl(product)}
-                    alt={product?.name || "Product overview"}
-                    width={352}
-                    height={352}
-                    className="w-[18rem] h-[18rem] rounded-[10px] flex-shrink-0 object-cover"
-                    unoptimized
-                  />
-                ))}
-              </div>
+      {/* OVERVIEW */}
+      <section ref={overviewRef} className={`py-16 md:py-24 px-4 sm:px-8 ${sectionClass(overviewVisible)}`}>
+        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-10 lg:gap-14">
+          <div className="w-full lg:w-[42%] text-center lg:text-left">
+            <h2 className="text-[#eb61a1] text-3xl sm:text-4xl md:text-5xl font-bold mb-3">
+              LET&apos;S HAVE A LOOK
+            </h2>
+            <p className="text-black text-base sm:text-lg md:text-xl font-medium mb-8 opacity-80">
+              A quick look at our products — spend a few minutes to see how they look.
+            </p>
+            <div className="flex justify-center lg:justify-start gap-4">
+              {overviewProducts.slice(0, 2).map((product) => (
+                <Image
+                  key={product.id}
+                  src={getProductImageUrl(product)}
+                  alt={product?.name || "Product overview"}
+                  width={220}
+                  height={220}
+                  className="w-[9rem] h-[9rem] sm:w-[11rem] sm:h-[11rem] rounded-xl object-cover"
+                  loading="lazy"
+                  unoptimized
+                />
+              ))}
             </div>
           </div>
           {overviewProducts[2] && (
-            <div className="mt-[8rem] w-[38rem] h-[38rem] flex-shrink-0 max-[1390px]:mt-[7rem] max-[1300px]:mt-[6rem] max-[1250px]:mt-[5rem] max-[1200px]:mt-[4.5rem] max-[1150px]:mt-[4rem] max-[1100px]:mt-[3.5rem] max-[660px]:mt-[3rem] max-[990px]:ml-[1rem] max-[660px]:mb-[-5rem]">
+            <div className="w-full lg:w-[58%] max-w-xl">
               <Image
                 src={getProductImageUrl(overviewProducts[2])}
                 alt={overviewProducts[2]?.name || "Product overview"}
                 width={560}
                 height={480}
-                className="w-full h-full object-cover rounded-[10px] block -mt-[3.3rem]"
+                className="w-full aspect-[7/6] object-cover rounded-xl"
+                loading="lazy"
                 unoptimized
               />
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* LOGO MOVING SECTION */}
-      <div className="bg-[#0A3D3F] py-16 max-[1000px]:py-12 max-[600px]:py-10 overflow-hidden relative z-[1]">
+      {/* CATEGORY MARQUEE */}
+      <div className="bg-[#0A3D3F] py-10 sm:py-14 overflow-hidden">
         <div className="flex w-max animate-marquee">
           {[0, 1].map((setIndex) => (
-            <div key={setIndex} className="flex whitespace-nowrap">
-              {categoryItems.map((category, index) => (
-                <span
-                  key={`${setIndex}-${category.id ?? category.name}`}
-                  className={`text-5xl max-[1000px]:text-4xl max-[600px]:text-3xl mx-12 ${categoryTextStyles[index % categoryTextStyles.length]}`}
-                >
-                  {category.name}
-                </span>
-              ))}
+            <div key={setIndex} className="flex whitespace-nowrap items-center">
+              {categories.map((category) => {
+                const label = String(category?.name || "").toUpperCase();
+                const categoryQuery = category?.id
+                  ? `categoryId=${encodeURIComponent(category.id)}`
+                  : `category=${encodeURIComponent(category?.name || "")}`;
+                return (
+                  <button
+                    key={`${setIndex}-${category.id ?? category.name}`}
+                    type="button"
+                    onClick={() => router.push(`/products?${categoryQuery}`)}
+                    className="mx-8 sm:mx-12 text-2xl sm:text-3xl md:text-4xl font-bold uppercase tracking-[0.08em] text-white/90 not-italic cursor-pointer bg-transparent border-none p-0 transition-colors hover:text-white"
+                    title={`View ${label} products`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           ))}
         </div>
       </div>
 
-      {/* PRODUCTS SECTION  */}
+      {/* PRODUCTS */}
       <section
         ref={productRef}
         id="product"
-        className={`py-20 px-8 text-center max-[1180px]:mt-[-3rem] ${noSectionAnimation ? "" : "transition-all duration-1000 ease-out delay-200"} ${productFinalVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-32"}`}
+        className={`py-16 md:py-20 px-4 sm:px-8 text-center ${sectionClass(productVisible)}`}
       >
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-12 uppercase">
-            <h2 className="text-[3rem] text-[#eb61a2] font-bold max-[1000px]:text-[2.5rem] max-[600px]:text-[28px]">
-              OUR PRODUCTS
+          <div className="flex justify-between items-center mb-10 gap-4">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl text-[#eb61a2] font-bold uppercase">
+              Our Products
             </h2>
             <button
-              className="bg-[#eb61a2] text-white border-none px-[3rem] py-3 rounded-[0.5rem] text-[1.5rem] cursor-pointer transition-[0.1s] ease hover:bg-[#c8538a] max-[1000px]:text-[1.25rem] max-[600px]:text-sm"
+              type="button"
+              className="bg-[#eb61a2] text-white border-none px-5 sm:px-8 py-2.5 sm:py-3 rounded-lg text-sm sm:text-lg cursor-pointer transition-colors hover:bg-[#c8538a] shrink-0"
               onClick={() => router.push("/products")}
             >
               View All
@@ -572,157 +563,74 @@ export default function Page() {
           </div>
 
           {loading ? (
-            <p className="text-center text-gray-500 text-lg mt-20">Loading products...</p>
-          ) : products.length === 0 ? (
-            <p className="text-center text-gray-500 text-lg mt-20">No products found.</p>
+            <p className="text-center text-gray-500 text-lg mt-16">Loading products...</p>
+          ) : homeProducts.length === 0 ? (
+            <p className="text-center text-gray-500 text-lg mt-16">No products found.</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {products.slice(0, 10).map((p) => {
-                const brand = typeof p?.brand === "string" ? p.brand : (p?.brand?.name ?? "");
-                const desc = p?.description?.trim() || "No description";
-                return (
-                  <div
-                    key={p.id}
-                    className="bg-white rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col transition-all duration-300 hover:shadow-[0_8px_20px_rgba(0,0,0,0.1)] z-[100]"
-                  >
-                    <div className="relative h-[200px] bg-gray-100">
-                      <Image
-                        src={getProductImageUrl(p)}
-                        alt={p?.name || "Product"}
-                        fill
-                        className="object-cover cursor-pointer hover:scale-[1.02] transition-transform duration-300"
-                        sizes="(max-width: 600px) 50vw, 200px"
-                        unoptimized
-                        onClick={() => router.push(`/product_details?productId=${p.id}`)}
-                      />
-
-                      {/* Discount % badge (only if active promotion with percentage) */}
-                      {discountPercentages[p?.id] != null && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openPromotionModal(p);
-                          }}
-                          className="absolute top-2 left-2 bg-[#eb61a2] text-white text-[12px] font-bold px-2.5 py-0.5 rounded-full shadow hover:bg-[#c8538a] active:scale-95 transition-all flex items-center gap-1 z-10"
-                          title="View promotion details"
-                        >
-                          {discountPercentages[p.id]}%
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 hover:bg-red-50 transition-colors"
-                        onClick={() => handleFavoriteClick(p.id)}
-                      >
-                        <FaHeart
-                          className={`text-sm ${favoriteIds.has(p.id) ? "text-[#F83E94]" : "text-[#2F2F2F]"}`}
-                        />
-                      </button>
-                    </div>
-                    <div className="flex flex-col flex-1 p-4 gap-1 min-w-0">
-                      {brand && (
-                        <span className="opacity-70 text-xs font-medium text-gray-500 uppercase tracking-wide truncate">
-                          {brand}
-                        </span>
-                      )}
-                      <h3 className="text-[1.15rem] font-bold text-gray-800 truncate" title={p?.name}>
-                        {p?.name || "No Name"}
-                      </h3>
-                      <p className="text-xs text-gray-500 truncate opacity-80" title={desc}>
-                        {desc}
-                      </p>
-                      <ProductPrice
-                        price={p?.price}
-                        discountedPrice={discountedPrices[p?.id]}
-                        className="mt-1"
-                        centered
-                      />
-                      <button
-                        type="button"
-                        className="mt-3 w-full bg-[#d13e82] text-white text-sm font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#c32c70] transition-colors"
-                        onClick={() => handleAddToCartClick(p.id)}
-                      >
-                        <FaCartPlus className="text-base" /> Add to Cart
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+              {homeProducts.map((p, index) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  discountedPrice={discountedPrices[p?.id]}
+                  discountPercentage={discountPercentages[p?.id]}
+                  isFavorited={favoriteIds.has(Number(p.id))}
+                  onAddToCart={handleAddToCartClick}
+                  onFavorite={handleFavoriteClick}
+                  onDiscountClick={openPromotionModal}
+                  priority={index < 4}
+                />
+              ))}
             </div>
           )}
         </div>
       </section>
-      {/* CUSTOMER STORIES RECOMMENDATION SECTION */}
-      <div
+
+      {/* FEEDBACK */}
+      <section
         ref={recommendRef}
-        className={`pt-8 pb-20 px-8 ${noSectionAnimation ? "" : "transition-all duration-1000 ease-out delay-300"} ${recommendFinalVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-32"}`}
+        className={`pt-8 pb-16 md:pb-20 px-4 sm:px-8 ${sectionClass(recommendVisible)}`}
       >
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-[4rem] font-bold text-[#3C3C3C] mb-4 max-[1000px]:text-[3rem] max-[600px]:text-[2.5rem]">
+          <div className="text-center mb-12 md:mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#3C3C3C] mb-4">
               GLOBAL FEEDBACKS
             </h2>
-            <p className="text-[#000] text-[1.5rem] font-sans whitespace-pre-line text-left leading-relaxed max-[1000px]:text-[1.25rem] max-[600px]:text-[1.125rem]">
+            <p className="text-[#000] text-base sm:text-lg md:text-xl text-left leading-relaxed max-w-4xl mx-auto opacity-80">
               Discover customer-loved skincare essentials for healthy, glowing skin — curated for every skin
               type and daily routine.
             </p>
           </div>
 
-          {/* Featured Large Testimonial */}
-
-          {/* 3-column smaller testimonials with click scroll */}
           <div className="relative">
-            {/* Left scroll button with shadow */}
             <button
-              onClick={() => {
-                const container = document.getElementById("testimonials-container");
-                const cards = container?.querySelectorAll(".testimonial-card");
-                if (container && cards?.length > 0) {
-                  const gap = 24;
-                  const cardWidth = cards[0].offsetWidth;
-                  const scrollAmount = cardWidth + gap;
-                  const newScrollLeft = container.scrollLeft - scrollAmount;
-                  container.scrollTo({ left: Math.max(0, newScrollLeft), behavior: "smooth" });
-                }
-              }}
+              type="button"
+              onClick={() => scrollTestimonials("left")}
               disabled={!canScrollLeft}
-              className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-[0_4px_15px_rgba(0,0,0,0.15)] rounded-full w-12 h-12 flex items-center justify-center text-[#eb61a2] hover:bg-[#eb61a2] hover:text-white transition-all duration-300 -ml-6 max-[600px]:-ml-2 ${!canScrollLeft ? "opacity-40 cursor-not-allowed" : ""}`}
+              aria-label="Previous feedback"
+              className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-md rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-[#eb61a2] hover:bg-[#eb61a2] hover:text-white transition-all -ml-2 sm:-ml-4 ${!canScrollLeft ? "opacity-40 cursor-not-allowed" : ""}`}
             >
-              <FaChevronLeft size={20} />
+              <FaChevronLeft size={18} />
             </button>
 
-            {/* Right scroll button with shadow */}
             <button
-              onClick={() => {
-                const container = document.getElementById("testimonials-container");
-                const cards = container?.querySelectorAll(".testimonial-card");
-                if (container && cards?.length > 0) {
-                  const gap = 24;
-                  const cardWidth = cards[0].offsetWidth;
-                  const scrollAmount = cardWidth + gap;
-                  const maxScroll = container.scrollWidth - container.clientWidth;
-                  const newScrollLeft = container.scrollLeft + scrollAmount;
-                  container.scrollTo({ left: Math.min(maxScroll, newScrollLeft), behavior: "smooth" });
-                }
-              }}
+              type="button"
+              onClick={() => scrollTestimonials("right")}
               disabled={!canScrollRight}
-              className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-[0_4px_15px_rgba(0,0,0,0.15)] rounded-full w-12 h-12 flex items-center justify-center text-[#eb61a2] hover:bg-[#eb61a2] hover:text-white transition-all duration-300 -mr-6 max-[600px]:-mr-2 ${!canScrollRight ? "opacity-40 cursor-not-allowed" : ""}`}
+              aria-label="Next feedback"
+              className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-md rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-[#eb61a2] hover:bg-[#eb61a2] hover:text-white transition-all -mr-2 sm:-mr-4 ${!canScrollRight ? "opacity-40 cursor-not-allowed" : ""}`}
             >
-              <FaChevronRight size={20} />
+              <FaChevronRight size={18} />
             </button>
 
-            {/* Gradient shadows on both sides */}
             <div
               ref={leftGradientRef}
-              className="absolute left-0 top-0 bottom-4 w-12 bg-gradient-to-r from-white to-transparent z-5 pointer-events-none transition-opacity duration-300"
-            ></div>
+              className="absolute left-0 top-0 bottom-4 w-10 bg-gradient-to-r from-[#F7F7F7] to-transparent z-[5] pointer-events-none transition-opacity duration-300"
+            />
             <div
               ref={rightGradientRef}
-              className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-white to-transparent z-5 pointer-events-none transition-opacity duration-300"
-            ></div>
+              className="absolute right-0 top-0 bottom-4 w-10 bg-gradient-to-l from-[#F7F7F7] to-transparent z-[5] pointer-events-none transition-opacity duration-300"
+            />
 
             <div
               ref={testimonialsRef}
@@ -733,57 +641,59 @@ export default function Page() {
               {recommendationFeedback.map((feedback, idx) => {
                 const stars = Math.max(1, Math.min(5, Number(feedback?.rating) || 5));
                 const text = feedback?.comment?.trim() || "Recommended skincare product";
-                const recItem = ImagesInRecommendation[idx] || {};
+                const recItem = FALLBACK_REVIEWERS[idx] || {};
                 const product = productById.get(feedback?.productId);
                 const reviewerImage = feedback?.imageUrl || recItem.image || getProductImageUrl(product);
                 const feedbackKey = feedback.id ?? `feedback-${idx}`;
                 const isExpanded = expandedFeedbackId === feedbackKey;
+
                 return (
                   <div
                     key={feedbackKey}
-                    className="testimonial-card bg-white rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.08)] border border-[#ffd6ec] flex flex-col gap-4 w-[350px] max-[1000px]:w-[300px] max-[600px]:w-[240px] max-[600px]:p-4 flex-shrink-0"
+                    className="testimonial-card bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-[#ffd6ec] flex flex-col gap-4 w-[260px] sm:w-[320px] md:w-[350px] flex-shrink-0"
                   >
-                    <div className="flex items-center gap-3 max-[600px]:gap-2">
+                    <div className="flex items-center gap-3">
                       <Image
                         src={reviewerImage}
                         alt={feedback?.userDisplayName || "Customer"}
                         width={48}
                         height={48}
-                        className="w-12 h-12 max-[600px]:w-9 max-[600px]:h-9 rounded-full object-cover flex-shrink-0"
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
+                        loading="lazy"
                         unoptimized
                       />
                       <div>
-                        <p className="font-bold text-[#3C3C3C] text-sm max-[600px]:text-xs">
+                        <p className="font-bold text-[#3C3C3C] text-sm">
                           {feedback?.userDisplayName || recItem.name || "Customer"}
                         </p>
-                        <p className="text-[#aaa] text-xs max-[600px]:text-[10px]">
-                          {recItem.role || "Verified Customer"}
-                        </p>
+                        <p className="text-[#aaa] text-xs">{recItem.role || "Verified Customer"}</p>
                       </div>
                     </div>
-                    <div className="bg-[#EDEDED] rounded-xl p-4 mt-2 max-[600px]:p-3 flex flex-col justify-between flex-grow">
+
+                    <div className="bg-[#EDEDED] rounded-xl p-4 flex flex-col justify-between flex-grow">
                       <div>
-                        <div className="flex gap-2 mb-2 max-[600px]:mb-1">
+                        <div className="flex gap-1 mb-2">
                           {[1, 2, 3, 4, 5].map((i) => (
                             <span
                               key={i}
-                              className={`text-4xl max-[600px]:text-2xl ${i <= stars ? "text-yellow-400" : "text-transparent [-webkit-text-stroke:2px_#facc15]"}`}
+                              className={`text-2xl sm:text-3xl ${i <= stars ? "text-yellow-400" : "text-transparent [-webkit-text-stroke:1.5px_#facc15]"}`}
                             >
                               &#9733;
                             </span>
                           ))}
                         </div>
-                        <p className="text-[#3C3C3C] text-sm max-[600px]:text-xs font-medium mb-1">
+                        <p className="text-[#3C3C3C] text-sm font-medium mb-1">
                           On {feedback?.productName || product?.name || "Product"}
                         </p>
                         <p
-                          className={`text-[#555] text-sm max-[600px]:text-xs leading-relaxed overflow-hidden transition-[max-height] duration-500 ease-in-out ${!isExpanded ? "line-clamp-3" : ""}`}
+                          className={`text-[#555] text-sm leading-relaxed overflow-hidden transition-[max-height] duration-500 ease-in-out ${!isExpanded ? "line-clamp-3" : ""}`}
                           style={{ maxHeight: isExpanded ? "500px" : "4.5em" }}
                         >
                           {text}
                         </p>
                         {text.length > 80 && (
                           <button
+                            type="button"
                             onClick={() => setExpandedFeedbackId(isExpanded ? null : feedbackKey)}
                             className="flex items-center gap-1 text-xs font-semibold text-[#eb61a2] mt-1 hover:underline"
                           >
@@ -794,7 +704,7 @@ export default function Page() {
                           </button>
                         )}
                       </div>
-                      <div className="flex justify-end pt-4 max-[600px]:pt-3">
+                      <div className="flex justify-end pt-3">
                         <p className="text-xs text-[#999]">{timeAgo(feedback?.createdAt)}</p>
                       </div>
                     </div>
@@ -804,46 +714,39 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Bottom stats bar */}
-          <div className="mt-14 grid grid-cols-3 gap-4 text-center max-[1000px]:mt-10 max-[600px]:mt-8">
-            {stats.map((stat, i) => (
+          <div className="mt-12 grid grid-cols-3 gap-3 sm:gap-4 text-center">
+            {stats.map((stat) => (
               <div
-                key={i}
-                className="bg-white rounded-2xl py-6 px-4 border border-[#ffd6ec] shadow-sm max-[1000px]:py-4 max-[600px]:py-3"
+                key={stat.label}
+                className="bg-white rounded-2xl py-4 sm:py-6 px-2 sm:px-4 border border-[#ffd6ec] shadow-sm"
               >
-                <p className="text-3xl font-bold text-black mb-1 max-[1000px]:text-2xl max-[600px]:text-xl">
-                  {stat.number}
-                </p>
-                <p className="text-sm text-[#888] font-medium max-[1000px]:text-xs">{stat.label}</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-black mb-1">{stat.number}</p>
+                <p className="text-xs sm:text-sm text-[#888] font-medium">{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ABOUT US SECTION */}
-      <div
+      {/* ABOUT */}
+      <section
         ref={aboutRef}
         id="aboutus"
-        className={`pt-8 pb-20 px-8 text-center ${noSectionAnimation ? "" : "transition-all duration-1000 ease-out delay-300"} ${aboutFinalVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-32"}`}
+        className={`pt-8 pb-16 md:pb-20 px-4 sm:px-8 ${sectionClass(aboutVisible)}`}
       >
         <div className="max-w-7xl mx-auto">
-          <p className="text-[4rem] font-bold text-[#000] mb-6 max-[1000px]:text-[3rem] max-[600px]:text-[2.5rem]">
-            ABOUT US
-          </p>
-          <div className="text-[#000] text-[1.5rem] font-sans text-left leading-relaxed w-full max-[1000px]:text-[1.25rem] max-[600px]:text-[1.125rem]">
-            <p className="mb-2">
-              <span className="font-bold">SKIN.ME</span> is more than skincare — it's a daily ritual of
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-6 text-center">ABOUT US</h2>
+          <div className="text-black text-base sm:text-lg md:text-xl text-left leading-relaxed max-w-4xl mx-auto">
+            <p className="mb-3">
+              <span className="font-bold">SKIN.ME</span> is more than skincare — it&apos;s a daily ritual of
               self-respect and renewal.
             </p>
-            <p className="mb-2">
+            <p className="mb-3">
               We create minimalist, effective formulas designed for real skin and real lives. Inspired by
               nature and backed by science, our products are gentle yet powerful.
             </p>
-            <p className="mb-2">
-              <span className="font-bold">Our Promise:</span>
-            </p>
-            <ul className="list-disc list-inside mb-2">
+            <p className="mb-2 font-bold">Our Promise:</p>
+            <ul className="list-disc list-inside mb-3 space-y-1">
               <li>Clean and safe ingredients</li>
               <li>Honest and transparent beauty</li>
               <li>Simple, effective skincare</li>
@@ -852,24 +755,26 @@ export default function Page() {
               Every product reflects our commitment to quality and care. Join us in redefining skincare with
               confidence and simplicity.
             </p>
-          </div>{" "}
-        </div>
-        <div className="grid grid-cols-4 gap-[2rem] mt-8 max-w-7xl mx-auto justify-center max-[992px]:grid-cols-2 max-[600px]:gap-[1rem]">
-          {products.slice(0, 4).map((product) => (
-            <Image
-              key={product.id}
-              src={getProductImageUrl(product)}
-              alt={product?.name || "Product"}
-              width={280}
-              height={280}
-              className="w-full h-auto rounded-[10px] object-cover"
-              unoptimized
-            />
-          ))}
-        </div>
-      </div>
+          </div>
 
-      {/* PROMOTION MODAL (pop-up on home page products) */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mt-10 max-w-5xl mx-auto">
+            {aboutProducts.map((product) => (
+              <Image
+                key={product.id}
+                src={getProductImageUrl(product)}
+                alt={product?.name || "Product"}
+                width={280}
+                height={280}
+                className="w-full aspect-square rounded-xl object-cover"
+                loading="lazy"
+                unoptimized
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PROMOTION MODAL */}
       {promoModal && (
         <div
           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
@@ -879,18 +784,18 @@ export default function Page() {
             className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="bg-[#eb61a2] text-white px-6 py-4 flex items-center justify-between">
               <div className="font-bold text-lg">Special Promotion</div>
               <button
+                type="button"
                 onClick={() => setPromoModal(null)}
                 className="text-white/90 hover:text-white text-2xl leading-none"
+                aria-label="Close"
               >
                 ×
               </button>
             </div>
 
-            {/* Content */}
             <div className="p-6">
               {promoLoading ? (
                 <div className="flex justify-center py-8">
@@ -902,7 +807,7 @@ export default function Page() {
                     <div className="w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden border border-gray-100">
                       <Image
                         src={getProductImageUrl(promoModal.product)}
-                        alt={promoModal.product?.name}
+                        alt={promoModal.product?.name || "Product"}
                         width={80}
                         height={80}
                         className="object-cover w-full h-full"
@@ -914,10 +819,7 @@ export default function Page() {
                         {promoModal.product?.name}
                       </div>
                       <div className="text-[#eb61a2] font-extrabold text-4xl mt-1">
-                        {typeof promoModal.promotion?.discountPercentage === "number"
-                          ? promoModal.promotion.discountPercentage
-                          : "?"}
-                        % OFF
+                        {extractPromoPercent(promoModal.promotion) ?? "?"}% OFF
                       </div>
                     </div>
                   </div>
@@ -929,7 +831,7 @@ export default function Page() {
                   )}
 
                   <div className="mt-4 text-xs text-gray-500">
-                    {promoModal.promotion.startDate || promoModal.promotion.start_date ? (
+                    {(promoModal.promotion.startDate || promoModal.promotion.start_date) && (
                       <>
                         Valid from{" "}
                         <span className="font-medium text-gray-700">
@@ -938,7 +840,7 @@ export default function Page() {
                           ).toLocaleDateString()}
                         </span>
                       </>
-                    ) : null}
+                    )}
                     {(promoModal.promotion.endDate || promoModal.promotion.end_date) && (
                       <>
                         {" "}
@@ -962,15 +864,16 @@ export default function Page() {
               )}
             </div>
 
-            {/* Actions */}
             <div className="border-t p-4 flex gap-3">
               <button
+                type="button"
                 onClick={() => setPromoModal(null)}
                 className="flex-1 py-3 rounded-2xl border text-gray-700 hover:bg-gray-50 font-medium"
               >
                 Close
               </button>
               <button
+                type="button"
                 onClick={() => {
                   const pid = promoModal.product?.id;
                   setPromoModal(null);
@@ -987,5 +890,19 @@ export default function Page() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F7F7F7] flex items-center justify-center text-gray-500">
+          Loading...
+        </div>
+      }
+    >
+      <HomePage />
+    </Suspense>
   );
 }

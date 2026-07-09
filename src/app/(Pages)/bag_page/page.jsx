@@ -8,6 +8,7 @@ import Navbar from "../../../Components/Navbar/Navbar";
 import Footer from "../../../Components/Footer/Footer";
 import axiosAuth from "../../../app/lib/api/axiosConfig";
 import useAuthContext from "../../../app/lib/Authentication/AuthContext";
+import { getCartItemCount, useCartCount } from "../../../app/lib/CartCountContext";
 import useUserActions from "../../../Components/Hooks/userUserActions";
 import { updateCartItemQuantity, removeCartItem } from "../../../app/lib/cartUpdateQuantity";
 import { FaShoppingBag, FaHeart, FaCartPlus } from "react-icons/fa";
@@ -62,7 +63,8 @@ function QuantityStepper({ value, min = 1, max = 999, onChange, disabled, onRemo
 function BagPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuthContext();
-  const { addToFavorite, removeFavorite } = useUserActions();
+  const { setCartCount } = useCartCount();
+  const { addToCart: addProductToCart, addToFavorite, removeFavorite } = useUserActions();
   const [cartId, setCartId] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [recommendedProducts, setRecommendedProducts] = useState([]);
@@ -73,6 +75,13 @@ function BagPage() {
   const [promoModal, setPromoModal] = useState(null);
   const [promoLoading, setPromoLoading] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState(new Set());
+
+  const syncCartBadge = useCallback(
+    (items) => {
+      setCartCount(getCartItemCount(items));
+    },
+    [setCartCount],
+  );
 
   const fetchCart = useCallback(async () => {
     try {
@@ -88,6 +97,7 @@ function BagPage() {
         (items[0]?.cartId ?? items[0]?.cart_id ?? null);
       setCartId(cid != null ? String(cid) : null);
       setCartItems(items);
+      syncCartBadge(items);
 
       // Fetch recommended products (random fallback if no brand match)
       if (items.length > 0) {
@@ -129,6 +139,7 @@ function BagPage() {
       if (err.response?.status === 404) {
         setCartId(null);
         setCartItems([]);
+        syncCartBadge([]);
       } else if (err.response?.status === 401) {
         router.replace("/login?redirect=/bag_page&message=" + encodeURIComponent("Session expired. Please login again"));
       } else {
@@ -136,11 +147,12 @@ function BagPage() {
         setTimeout(() => setNotification(""), 3000);
         setCartId(null);
         setCartItems([]);
+        syncCartBadge([]);
       }
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, syncCartBadge]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -228,30 +240,34 @@ function BagPage() {
 
       const itemId = item.id ?? item.cartItemId ?? item.itemId;
       const productId = item.product?.id;
-      setCartItems((prev) =>
-        prev.map((i) => {
+      setCartItems((prev) => {
+        const next = prev.map((i) => {
           const id = i.id ?? i.cartItemId ?? i.itemId;
           const same = String(id) === String(itemKey) || (itemKey?.startsWith?.("cart-") && i.product?.id === productId);
           if (!same) return i;
           return { ...i, quantity: qty };
-        })
-      );
+        });
+        syncCartBadge(next);
+        return next;
+      });
 
       const success = await updateCartItemQuantity(axiosAuth, itemId, qty, productId, cartId);
       if (!success) {
-        setCartItems((prev) =>
-          prev.map((i) => {
+        setCartItems((prev) => {
+          const next = prev.map((i) => {
             const id = i.id ?? i.cartItemId ?? i.itemId;
             const same = String(id) === String(itemKey) || (itemKey?.startsWith?.("cart-") && i.product?.id === productId);
             if (!same) return i;
             return { ...i, quantity: prevQty };
-          })
-        );
+          });
+          syncCartBadge(next);
+          return next;
+        });
         setNotification("Could not update quantity");
         setTimeout(() => setNotification(""), 3000);
       }
     },
-    [cartId, cartItems, findItemByKey]
+    [cartId, cartItems, findItemByKey, syncCartBadge]
   );
 
   const handleRemoveItem = useCallback(
@@ -262,11 +278,13 @@ function BagPage() {
       const productId = item.product?.id;
       const success = await removeCartItem(axiosAuth, itemId, user?.id, productId, cartId);
       if (success) {
-        setCartItems((prev) =>
-          prev.filter((i) =>
+        setCartItems((prev) => {
+          const next = prev.filter((i) =>
             itemId != null ? (i.id ?? i.cartItemId ?? i.itemId) !== itemId : String(i.product?.id) !== String(productId)
-          )
-        );
+          );
+          syncCartBadge(next);
+          return next;
+        });
         setNotification("Item removed");
         setTimeout(() => setNotification(""), 2000);
       } else {
@@ -274,7 +292,7 @@ function BagPage() {
         setTimeout(() => setNotification(""), 3000);
       }
     },
-    [user?.id, cartId, cartItems, findItemByKey]
+    [user?.id, cartId, cartItems, findItemByKey, syncCartBadge]
   );
 
   const handleCheckout = useCallback(() => {
@@ -286,9 +304,13 @@ function BagPage() {
   }, [router]);
 
   const addToCart = useCallback(async (productId, qty = 1) => {
-    setNotification("Added to cart");
-    setTimeout(() => setNotification(""), 2000);
-  }, []);
+    const ok = await addProductToCart(productId, qty);
+    if (ok) {
+      setNotification("Added to cart");
+      setTimeout(() => setNotification(""), 2000);
+      fetchCart();
+    }
+  }, [addProductToCart, fetchCart]);
 
   // Open promotion modal (identical to products/homepage)
   const openPromotionModal = useCallback(async (product) => {

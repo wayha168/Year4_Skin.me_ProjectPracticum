@@ -1,424 +1,541 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
-import axiosAuth from "../../app/lib/api/axiosConfig.js";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import axiosAuth from "../../app/lib/api/axiosConfig";
+import { OPEN_DISCOUNT_MODAL_EVENT } from "./openDiscountModal";
 
 const DEFAULT_IMAGE = "/assets/ModalDiscountImage/torriden.jpg";
-
 const CDN_BASE_URL = process.env.NEXT_PUBLIC_CDN_BASE_URL ?? "";
+const SEEN_KEY = "discountModalLastSeenAt";
+const AUTO_SHOW_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 hours
+
+function shouldAutoShowPromo() {
+  try {
+    const raw = localStorage.getItem(SEEN_KEY);
+    if (!raw) return true;
+
+    // Migrate old forever-hide flag into a 3-hour cooldown timestamp
+    if (raw === "true") {
+      markPromoSeen();
+      return false;
+    }
+
+    const lastSeenAt = Number(raw);
+    if (!Number.isFinite(lastSeenAt) || lastSeenAt <= 0) return true;
+
+    return Date.now() - lastSeenAt >= AUTO_SHOW_COOLDOWN_MS;
+  } catch {
+    return true;
+  }
+}
+
+function markPromoSeen() {
+  try {
+    localStorage.setItem(SEEN_KEY, String(Date.now()));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function extractPercent(obj) {
+  const val =
+    obj?.discountPercentage ??
+    obj?.discount_percentage ??
+    obj?.discountPercent ??
+    obj?.discount_percent ??
+    obj?.percent ??
+    obj?.value;
+  if (typeof val === "number") return val;
+  if (typeof val === "string" && val.trim() !== "") return Number(val);
+  return null;
+}
+
+function resolveImageUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== "string" || rawUrl.trim() === "") return null;
+  if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) return rawUrl;
+  if (CDN_BASE_URL) return `${CDN_BASE_URL.replace(/\/$/, "")}/${rawUrl.replace(/^\//, "")}`;
+  return rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+}
+
+function getPromoImage(obj) {
+  if (!obj || typeof obj !== "object") return null;
+
+  const directFields = [
+    obj.image,
+    obj.imageUrl,
+    obj.image_url,
+    obj.bannerImage,
+    obj.banner_image,
+    obj.thumbnail,
+    obj.thumbnailUrl,
+    obj.thumbnail_url,
+    obj.photo,
+    obj.photoUrl,
+    obj.productImage,
+    obj.product_image,
+    obj.promotionImage,
+    obj.promotion_image,
+  ];
+
+  for (const field of directFields) {
+    if (typeof field === "string" && field.trim() !== "") return resolveImageUrl(field);
+  }
+
+  const imageKey = obj.ImageKey ?? obj.imageKey ?? obj.image_key;
+  if (typeof imageKey === "string" && imageKey.trim() !== "") return resolveImageUrl(imageKey);
+
+  const imgObj = typeof obj.image === "object" ? obj.image : obj.imageObj ?? obj.media;
+  if (imgObj && typeof imgObj === "object") {
+    const nested = imgObj.downloadUrl ?? imgObj.url ?? imgObj.src;
+    if (typeof nested === "string" && nested.trim() !== "") return resolveImageUrl(nested);
+  }
+
+  const imagesArr = obj.images ?? obj.mediaList ?? obj.photos ?? obj.gallery;
+  if (Array.isArray(imagesArr) && imagesArr.length > 0) {
+    const first = imagesArr[0];
+    if (typeof first === "string") return resolveImageUrl(first);
+    const nested = first?.downloadUrl ?? first?.url ?? first?.src ?? first?.imageUrl;
+    if (typeof nested === "string" && nested.trim() !== "") return resolveImageUrl(nested);
+  }
+
+  if (obj.product) {
+    const productImg = getPromoImage(obj.product);
+    if (productImg) return productImg;
+  }
+
+  return null;
+}
+
+function getPromoDates(promo) {
+  const startRaw = promo?.startDate ?? promo?.start_date ?? promo?.validFrom ?? null;
+  const endRaw = promo?.endDate ?? promo?.end_date ?? promo?.validTo ?? promo?.deadline ?? null;
+  const start = startRaw ? new Date(startRaw) : null;
+  const end = endRaw ? new Date(endRaw) : null;
+  return {
+    start: start && !Number.isNaN(start.getTime()) ? start : null,
+    end: end && !Number.isNaN(end.getTime()) ? end : null,
+  };
+}
+
+function isExplicitlyInactive(promo) {
+  const explicit =
+    promo?.active ??
+    promo?.isActive ??
+    promo?.is_active ??
+    promo?.status ??
+    promo?.promotionStatus;
+
+  if (typeof explicit === "boolean") return !explicit;
+  if (typeof explicit === "string") {
+    const s = explicit.toLowerCase();
+    return ["inactive", "expired", "ended", "disabled", "false"].includes(s);
+  }
+  return false;
+}
+
+function isWithinDeadline(promo, now = new Date()) {
+  const { start, end } = getPromoDates(promo);
+  if (start && now < start) return false;
+  if (end && now > end) return false;
+  return true;
+}
+
+function formatPromoDate(date) {
+  if (!date) return "";
+  // Fixed locale avoids SSR/client locale mismatches
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getDeadlineLabel(promo, now = new Date()) {
+  const { start, end } = getPromoDates(promo);
+
+  if (start && now < start) {
+    return {
+      status: "upcoming",
+      label: `Starts ${formatPromoDate(start)}`,
+      tone: "upcoming",
+    };
+  }
+
+  if (end) {
+    const msLeft = end.getTime() - now.getTime();
+    if (msLeft <= 0) {
+      return { status: "expired", label: "Ended", tone: "expired" };
+    }
+    const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+    if (daysLeft <= 1) {
+      return { status: "active", label: "Ends today", tone: "urgent" };
+    }
+    if (daysLeft <= 3) {
+      return { status: "active", label: `${daysLeft} days left`, tone: "urgent" };
+    }
+    return {
+      status: "active",
+      label: `Until ${formatPromoDate(end)}`,
+      tone: "active",
+    };
+  }
+
+  return { status: "active", label: "Active now", tone: "active" };
+}
+
+function normalizePromotions(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.content)) return payload.content;
+  if (Array.isArray(payload?.promotions)) return payload.promotions;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (payload?.discount || payload?.promotion) return [payload.discount ?? payload.promotion];
+  if (payload && typeof payload === "object") return [payload];
+  return [];
+}
+
+function enrichPromotions(list, now = new Date()) {
+  return list.map((p) => ({
+    ...p,
+    __image: getPromoImage(p) || DEFAULT_IMAGE,
+    __deadline: getDeadlineLabel(p, now),
+    __percent: extractPercent(p),
+  }));
+}
+
+function getPromoTitle(p) {
+  return p?.title ?? p?.heading ?? p?.name ?? p?.offerTitle ?? "Special offer";
+}
+
+function getPromoDescription(p) {
+  const text = p?.description ?? p?.detail ?? p?.details ?? p?.summaryLine ?? "";
+  return typeof text === "string" ? text.trim() : "";
+}
+
+/** Resolve product id from a promotion payload for Shop now → product details. */
+function getPromoProductId(promo) {
+  if (!promo || typeof promo !== "object") return null;
+  const raw =
+    promo.productId ??
+    promo.product_id ??
+    promo.product?.id ??
+    promo.product?.productId ??
+    promo.items?.[0]?.productId ??
+    promo.items?.[0]?.product?.id ??
+    promo.products?.[0]?.id ??
+    promo.products?.[0]?.productId ??
+    null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 
 export default function DiscountModal() {
+  const router = useRouter();
+  // Avoid SSR/client HTML mismatch — render only after mount
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
+  const [promotions, setPromotions] = useState([]);
+  const [index, setIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const [modalData, setModalData] = useState({
-    heading: "Happy shopping",
-    badgeText: "Special Offer",
-    percentText: "",
-    description:
-      "Discover skincare made for healthy, glowing skin. Enjoy exclusive discounts on best-selling serums, cleansers, and moisturizers for a limited time only. Treat your skin with premium care at a special price.",
-    imageSrc: DEFAULT_IMAGE,
-    ctaText: "Shop Now",
-  });
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const [promotionsList, setPromotionsList] = useState([]);
-  const [selectedPromotionIndex, setSelectedPromotionIndex] = useState(0);
-
-  const extractPercent = (obj) => {
-    let val =
-      obj?.discountPercentage ??
-      obj?.discount_percentage ??
-      obj?.discountPercent ??
-      obj?.discount_percent ??
-      obj?.percent ??
-      obj?.value;
-    if (typeof val === "number") return val;
-    if (typeof val === "string" && val.trim() !== "") return Number(val);
-    return null;
-  };
-
-  const selectedPromotion = promotionsList[selectedPromotionIndex];
-  const selectedPercent = extractPercent(selectedPromotion);
-
-  const resolveImageUrl = (rawUrl) => {
-    if (!rawUrl || typeof rawUrl !== "string" || rawUrl.trim() === "") return null;
-    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) return rawUrl;
-    if (CDN_BASE_URL) return `${CDN_BASE_URL.replace(/\/$/, "")}/${rawUrl.replace(/^\//, "")}`;
-    return rawUrl;
-  };
-
-  const getPromoImage = (obj) => {
-    const directFields = [
-      obj?.image,
-      obj?.imageUrl,
-      obj?.image_url,
-      obj?.bannerImage,
-      obj?.banner_image,
-      obj?.thumbnail,
-      obj?.thumbnailUrl,
-      obj?.thumbnail_url,
-      obj?.photo,
-      obj?.photoUrl,
-      obj?.productImage,
-      obj?.product_image,
-      obj?.promotionImage,
-      obj?.promotion_image,
-    ];
-
-    for (const field of directFields) {
-      if (typeof field === "string" && field.trim() !== "") {
-        return resolveImageUrl(field);
-      }
-    }
-
-    const imageKey = obj?.ImageKey ?? obj?.imageKey ?? obj?.image_key;
-    if (typeof imageKey === "string" && imageKey.trim() !== "") {
-      return resolveImageUrl(imageKey);
-    }
-
-    const imgObj = obj?.image ?? obj?.imageObj ?? obj?.media;
-    if (imgObj && typeof imgObj === "object") {
-      const nested = imgObj?.downloadUrl ?? imgObj?.url ?? imgObj?.src;
-      if (typeof nested === "string" && nested.trim() !== "") return resolveImageUrl(nested);
-    }
-
-    const imagesArr = obj?.images ?? obj?.mediaList ?? obj?.photos ?? obj?.gallery;
-    if (Array.isArray(imagesArr) && imagesArr.length > 0) {
-      const first = imagesArr[0];
-      if (typeof first === "string") return resolveImageUrl(first);
-      const nested = first?.downloadUrl ?? first?.url ?? first?.src ?? first?.imageUrl;
-      if (typeof nested === "string" && nested.trim() !== "") return resolveImageUrl(nested);
-    }
-
-    if (obj?.product) {
-      const productImg = getPromoImage(obj.product);
-      if (productImg) return productImg;
-    }
-
-    const nestedListFields = ["items", "products", "variants"];
-    for (const key of nestedListFields) {
-      if (Array.isArray(obj?.[key]) && obj[key].length > 0) {
-        const img = getPromoImage(obj[key][0]);
-        if (img) return img;
-      }
-    }
-
-    return null;
-  };
-
-  const fetchDiscountData = async () => {
+  const fetchPromotions = useCallback(async () => {
+    setLoading(true);
     try {
-      const response = await axiosAuth.get("/promotions/all");
+      let list = [];
 
-
-      const raw = response?.data;
-      const payload = raw?.data ?? raw;
-
-      const promotions = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.promotions)
-          ? payload.promotions
-          : Array.isArray(payload?.data)
-            ? payload.data
-            : [];
-
-      const normalizedPromotions = Array.isArray(promotions)
-        ? promotions
-        : (payload?.discount ?? payload?.promotion ?? payload)
-          ? [payload?.discount ?? payload?.promotion ?? payload]
-          : [];
-
-      if (normalizedPromotions.length === 0) {
-        setPromotionsList([]);
-        return;
+      try {
+        const res = await axiosAuth.get("/promotions/active");
+        list = normalizePromotions(res?.data?.data ?? res?.data);
+      } catch {
+        list = [];
       }
 
-      const displayPromotions = normalizedPromotions.slice(0, 6);
-      let maxPercent = 0;
-      let maxPercentPromotion = displayPromotions[0];
-      let maxPercentPromotionIndex = 0;
-
-      for (const [index, p] of displayPromotions.entries()) {
-        const pct = extractPercent(p);
-        if (pct !== null && pct > maxPercent) {
-          maxPercent = pct;
-          maxPercentPromotion = p;
-          maxPercentPromotionIndex = index;
+      if (!list.length) {
+        try {
+          const res = await axiosAuth.get("/promotions/all");
+          list = normalizePromotions(res?.data?.data ?? res?.data);
+        } catch {
+          list = [];
         }
       }
 
-      const heading =
-        maxPercentPromotion?.title ??
-        maxPercentPromotion?.heading ??
-        maxPercentPromotion?.name ??
-        "Happy shopping";
+      const now = new Date();
 
-      const badgeText =
-        maxPercentPromotion?.badgeTitle ??
-        maxPercentPromotion?.badge ??
-        maxPercentPromotion?.offerTitle ??
-        "Special Offer";
+      // Prefer currently valid promos; if none match dates, still show non-inactive ones
+      let selected = list.filter((p) => !isExplicitlyInactive(p) && isWithinDeadline(p, now));
+      if (!selected.length) {
+        selected = list.filter((p) => !isExplicitlyInactive(p));
+      }
+      if (!selected.length) {
+        selected = list;
+      }
 
-      const description =
-        maxPercentPromotion?.description ??
-        maxPercentPromotion?.detail ??
-        maxPercentPromotion?.details ??
-        maxPercentPromotion?.summaryLine ??
-        "Discover skincare made for healthy, glowing skin. Enjoy exclusive discounts on best-selling serums, cleansers, and moisturizers for a limited time only. Treat your skin with premium care at a special price.";
-
-      const ctaText =
-        maxPercentPromotion?.ctaText ??
-        maxPercentPromotion?.cta ??
-        maxPercentPromotion?.buttonText ??
-        maxPercentPromotion?.button_text ??
-        "Shop Now";
-
-      const imageSrc = getPromoImage(maxPercentPromotion) || DEFAULT_IMAGE;
-
-      const promotionsWithImage = displayPromotions.map((p) => ({
-        ...p,
-        __resolvedImageSrc: getPromoImage(p) || DEFAULT_IMAGE,
-      }));
-
-      setPromotionsList(promotionsWithImage);
-      setSelectedPromotionIndex(maxPercentPromotionIndex);
-
-      setModalData({
-        heading,
-        badgeText,
-        percentText: maxPercent > 0 ? `UP TO ${Math.round(maxPercent)}% OFF` : "",
-        description,
-        imageSrc,
-        ctaText,
-      });
+      setPromotions(enrichPromotions(selected, now));
+      setIndex(0);
     } catch (error) {
-      console.error("[DiscountModal] Error fetching discount data:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchDiscountData();
-  }, []);
-
-  useEffect(() => {
-    const isDev = process.env.NODE_ENV === "development";
-    const hasSeen = localStorage.getItem("hasSeenDiscountModal");
-
-    if (isDev || !hasSeen) {
-      const timer = setTimeout(() => {
-        setOpen(true);
-      }, 1200);
-
-      return () => clearTimeout(timer);
+      console.error("[DiscountModal] Failed to load promotions:", error);
+      setPromotions([]);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const closeModal = () => {
+  useEffect(() => {
+    if (!mounted) return;
+    fetchPromotions();
+  }, [mounted, fetchPromotions]);
+
+  const openModal = useCallback(async () => {
+    if (promotions.length === 0) {
+      await fetchPromotions();
+    }
+    setOpen(true);
+  }, [promotions.length, fetchPromotions]);
+
+  useEffect(() => {
+    if (!mounted) return undefined;
+
+    const onOpenRequest = () => {
+      openModal();
+    };
+
+    window.addEventListener(OPEN_DISCOUNT_MODAL_EVENT, onOpenRequest);
+    return () => window.removeEventListener(OPEN_DISCOUNT_MODAL_EVENT, onOpenRequest);
+  }, [mounted, openModal]);
+
+  useEffect(() => {
+    if (!mounted || loading) return;
+    if (promotions.length === 0) return;
+
+    // Auto-popup only on first visit, then again after 3 hours
+    if (!shouldAutoShowPromo()) return undefined;
+
+    const timer = setTimeout(() => {
+      setOpen(true);
+      markPromoSeen();
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [mounted, loading, promotions.length]);
+
+  const closeModal = useCallback(() => {
     setOpen(false);
-    if (process.env.NODE_ENV !== "development") {
-      localStorage.setItem("hasSeenDiscountModal", "true");
-    }
-  };
+    markPromoSeen();
+  }, []);
 
-  // ── Dot navigation: clicking a dot switches both the left image and the right panel data ──
-  const handleDotClick = (idx) => {
-    const p = promotionsList[idx];
-    if (!p) return;
+  const goTo = useCallback(
+    (next) => {
+      if (!promotions.length) return;
+      setIndex(((next % promotions.length) + promotions.length) % promotions.length);
+    },
+    [promotions.length]
+  );
 
-    setSelectedPromotionIndex(idx);
+  const current = promotions[index] || null;
 
-    const heading = p?.title ?? p?.heading ?? p?.name ?? "Happy shopping";
-    const badgeText = p?.badgeTitle ?? p?.badge ?? p?.offerTitle ?? "Special Offer";
-    const description =
-      p?.description ??
-      p?.detail ??
-      p?.details ??
-      p?.summaryLine ??
-      modalData.description;
-    const ctaText =
-      p?.ctaText ?? p?.cta ?? p?.buttonText ?? p?.button_text ?? "Shop Now";
-    const imgResolved = p?.__resolvedImageSrc;
-
-    setModalData((prev) => ({
-      ...prev,
-      heading,
-      badgeText,
-      description,
-      imageSrc:
-        typeof imgResolved === "string" && imgResolved.trim() !== ""
-          ? imgResolved
-          : prev.imageSrc,
-      ctaText,
-    }));
-  };
+  const toneClass = useMemo(() => {
+    const tone = current?.__deadline?.tone;
+    if (tone === "urgent") return "bg-amber-500 text-white";
+    if (tone === "expired") return "bg-gray-400 text-white";
+    if (tone === "upcoming") return "bg-sky-500 text-white";
+    return "bg-emerald-500 text-white";
+  }, [current]);
 
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.overflow = "hidden";
+    if (!open) return undefined;
 
-      const handleEsc = (e) => {
-        if (e.key === "Escape") closeModal();
-      };
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
 
-      window.addEventListener("keydown", handleEsc);
+    const onKey = (e) => {
+      if (e.key === "Escape") closeModal();
+      if (e.key === "ArrowRight") goTo(index + 1);
+      if (e.key === "ArrowLeft") goTo(index - 1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
+    };
+  }, [open, closeModal, goTo, index]);
 
-      return () => {
-        window.removeEventListener("keydown", handleEsc);
-        document.body.style.overflow = "unset";
-        document.documentElement.style.overflow = "unset";
-      };
-    } else {
-      document.body.style.overflow = "unset";
-      document.documentElement.style.overflow = "unset";
+  // Never render modal markup on the server
+  if (!mounted || !open) return null;
+
+  if (!current) {
+    return (
+      <div
+        className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+        onClick={closeModal}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Promotion"
+      >
+        <div
+          className="relative w-full max-w-[420px] rounded-2xl bg-white p-8 text-center shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={closeModal}
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white transition hover:bg-black/65"
+            aria-label="Close promotion"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <p className="text-lg font-semibold text-[#eb61a2]">
+            {loading ? "Loading promotions..." : "No active promotions right now"}
+          </p>
+          <p className="mt-2 text-sm text-gray-500">
+            {loading ? "Please wait a moment." : "Check back soon for special offers."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const percent = current.__percent;
+  const title = getPromoTitle(current);
+  const description = getPromoDescription(current);
+  const shortDescription =
+    description.length > 110 ? `${description.slice(0, 110).trim()}…` : description;
+  const productId = getPromoProductId(current);
+
+  const handleShopNow = () => {
+    closeModal();
+    if (productId) {
+      router.push(`/product_details?productId=${productId}`);
+      return;
     }
-  }, [open]);
-
-  if (!open) return null;
+    router.push("/products");
+  };
 
   return (
     <div
-      className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/40 backdrop-blur-md"
+      className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={closeModal}
       style={{ touchAction: "none" }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Promotion"
     >
       <div
-        className="relative flex w-[94%] max-w-[340px] sm:max-w-[420px] md:max-w-[680px] max-h-[82vh] overflow-hidden rounded-[20px] bg-white shadow-2xl"
+        className="relative w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Left panel ── */}
-        <div className="w-[42%] bg-black p-3 sm:p-4 text-white flex flex-col">
+        <button
+          type="button"
+          onClick={closeModal}
+          className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white transition hover:bg-black/65"
+          aria-label="Close promotion"
+        >
+          <X className="h-4 w-4" />
+        </button>
 
-          {/* Main sliding image with CSS transition */}
-          <div className="relative overflow-hidden rounded-2xl flex-shrink-0">
-            {selectedPercent && selectedPercent > 0 ? (
-              <div className="absolute left-2 top-2 z-10 rounded-full bg-pink-500 px-2.5 py-1 text-[11px] sm:text-xs font-extrabold leading-none text-white shadow-lg">
-                {Math.round(selectedPercent)}% OFF
+        <div className="relative aspect-[4/5] w-full bg-gray-100 sm:aspect-[3/4]">
+          <img
+            key={current.__image}
+            src={current.__image}
+            alt={title}
+            className="h-full w-full object-cover"
+            onError={(e) => {
+              if (e.currentTarget.src !== DEFAULT_IMAGE) e.currentTarget.src = DEFAULT_IMAGE;
+            }}
+          />
+
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+          {/* Big discount badge — easy to see */}
+          <div className="absolute left-3 top-3 right-14 z-10 flex flex-col items-start gap-2">
+            {percent != null && percent > 0 && (
+              <div className="rounded-2xl bg-[#eb61a2] px-4 py-2.5 shadow-[0_8px_24px_rgba(235,97,162,0.45)] ring-2 ring-white/80">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/90">
+                  Save
+                </p>
+                <p className="text-4xl sm:text-5xl font-black leading-none text-white tabular-nums">
+                  {Math.round(percent)}
+                  <span className="text-2xl sm:text-3xl align-top">%</span>
+                </p>
+                <p className="mt-0.5 text-sm font-bold uppercase tracking-wide text-white">OFF</p>
               </div>
-            ) : null}
-            <img
-              key={modalData.imageSrc}
-              src={modalData.imageSrc}
-              alt={modalData.heading || "Skincare"}
-              className="h-[30vh] max-h-[220px] sm:max-h-[260px] w-full object-cover transition-opacity duration-500 ease-in-out animate-fadeIn"
-              onError={(e) => {
-                if (e.currentTarget.src !== DEFAULT_IMAGE) {
-                  e.currentTarget.src = DEFAULT_IMAGE;
-                }
-              }}
-            />
+            )}
+            <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold shadow ${toneClass}`}>
+              {current.__deadline?.label || "Active"}
+            </span>
           </div>
 
-          {/* Dot indicators — only show when there are multiple promotions */}
-          {promotionsList.length > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-3">
-              {promotionsList.map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  aria-label={`Go to promotion ${idx + 1}`}
-                  onClick={() => handleDotClick(idx)}
-                  className={[
-                    "rounded-full transition-all duration-300 focus:outline-none",
-                    idx === selectedPromotionIndex
-                      ? "bg-pink-400 w-6 h-3"       // active: bigger pill shape
-                      : "bg-white/40 hover:bg-white/70 w-3 h-3", // inactive: bigger circle
-                  ].join(" ")}
-                />
-              ))}
-            </div>
+          {promotions.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => goTo(index - 1)}
+                className="absolute left-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-gray-800 shadow transition hover:bg-white"
+                aria-label="Previous promotion"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => goTo(index + 1)}
+                className="absolute right-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-gray-800 shadow transition hover:bg-white"
+                aria-label="Next promotion"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </>
           )}
 
-          <h1 className="mt-4 text-[1.75rem] sm:text-[2rem] font-bold leading-tight">
-            {modalData.heading}
-          </h1>
-        </div>
+          <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/75">
+              Promotion
+            </p>
+            <h2 className="mt-1 text-base font-semibold leading-snug line-clamp-2">{title}</h2>
+            {shortDescription && (
+              <p className="mt-1 text-[11px] leading-relaxed text-white/80 line-clamp-2">
+                {shortDescription}
+              </p>
+            )}
 
-        {/* ── Right panel ── */}
-        <div className="relative flex-1 p-4 sm:p-5 md:p-7 overflow-y-auto">
-          <button onClick={closeModal} className="absolute right-1 top-1 z-10">
-            <X className="h-8 w-8 text-red-500" />
-          </button>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={handleShopNow}
+                className="rounded-full bg-[#eb61a2] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#d13e82]"
+              >
+                Shop now
+              </button>
 
-          {promotionsList?.length ? (
-            <div className="mb-4">
-              <div className="grid grid-cols-3 gap-2">
-                {promotionsList.slice(0, 6).map((p, idx) => {
-                  const isSelected = idx === selectedPromotionIndex;
-                  const badge =
-                    p?.badgeTitle ?? p?.badge ?? p?.offerTitle ?? p?.title ?? "Offer";
-                  const percentNum = extractPercent(p);
-
-                  return (
+              {promotions.length > 1 && (
+                <div className="flex items-center gap-1.5" aria-label="Promotion pagination">
+                  {promotions.map((_, i) => (
                     <button
-                      key={p?.id ?? idx}
+                      key={i}
                       type="button"
-                      onClick={() => handleDotClick(idx)}
-                      className={
-                        "rounded-xl border px-2 py-2 text-left transition " +
-                        (isSelected
-                          ? "border-pink-400 bg-pink-50"
-                          : "border-gray-200 bg-white hover:border-gray-300")
-                      }
-                    >
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={p?.__resolvedImageSrc || DEFAULT_IMAGE}
-                          alt={badge}
-                          className="h-6 w-6 rounded object-cover"
-                          onError={(e) => {
-                            if (e.currentTarget.src !== DEFAULT_IMAGE) {
-                              e.currentTarget.src = DEFAULT_IMAGE;
-                            }
-                          }}
-                        />
-                        <div className="min-w-0">
-                          <div className="text-[10px] font-bold text-gray-600 line-clamp-1">
-                            {badge}
-                          </div>
-                          <div className="mt-0.5 text-[13px] font-extrabold text-[#eb61a2]">
-                            {percentNum && percentNum > 0
-                              ? `${Math.round(percentNum)}%`
-                              : ""}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                      onClick={() => setIndex(i)}
+                      aria-label={`Promotion ${i + 1}`}
+                      aria-current={i === index}
+                      className={[
+                        "rounded-full transition-all",
+                        i === index ? "h-1.5 w-4 bg-white" : "h-1.5 w-1.5 bg-white/45 hover:bg-white/70",
+                      ].join(" ")}
+                    />
+                  ))}
+                  <span className="ml-1 text-[10px] tabular-nums text-white/70">
+                    {index + 1}/{promotions.length}
+                  </span>
+                </div>
+              )}
             </div>
-          ) : null}
-
-          <p className="flex text-center text-2xl text-gray-500">{modalData.badgeText}</p>
-
-          <h2 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-black leading-none">
-            {modalData.percentText}
-          </h2>
-
-          <p className="mt-3 text-[13.5px] sm:text-[15px] md:text-[16px] leading-relaxed text-gray-500">
-            {modalData.description}
-          </p>
-
-          <button
-            onClick={closeModal}
-            className="mt-4 sm:mt-5 rounded-2xl bg-pink-500 px-5 py-2.5 sm:py-3 text-base sm:text-lg md:text-xl font-semibold text-white transition hover:scale-105"
-          >
-            {modalData.ctaText}
-          </button>
+          </div>
         </div>
       </div>
-
-      {/* Fade-in keyframe — add this once to your global CSS instead if preferred */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(1.03); }
-          to   { opacity: 1; transform: scale(1); }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.4s ease-in-out;
-        }
-      `}</style>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import useAuthContext from "../../app/lib/Authentication/AuthContext";
+import { useCartCount } from "../../app/lib/CartCountContext";
 import LoginFirst from "../LoginFirst/LoginFirst";
 import MessageWidget from "../MessageWidget/MessageWidget";
 import axiosAuth from "../../app/lib/api/axiosConfig";
@@ -20,7 +21,9 @@ const Navbar = ({ alwaysVisible = false }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuthContext();
+  const { cartCount } = useCartCount();
   const pathname = usePathname();
+  const bagBadgeLabel = cartCount > 99 ? "99+" : String(cartCount);
 
   const [translateY, setTranslateY] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -176,8 +179,13 @@ const Navbar = ({ alwaysVisible = false }) => {
     };
   }, [handleResize]);
 
-  // Scroll behavior: smooth hide/show based on scroll speed
+  // Keep header pinned when alwaysVisible; otherwise hide/show on scroll
   useEffect(() => {
+    if (alwaysVisible) {
+      setTranslateY(0);
+      return;
+    }
+
     let lastScrollY = window.scrollY;
     let ticking = false;
 
@@ -186,8 +194,7 @@ const Navbar = ({ alwaysVisible = false }) => {
         window.requestAnimationFrame(() => {
           const currentScrollY = window.scrollY;
           const delta = currentScrollY - lastScrollY;
-          // Adjust translateY based on scroll delta for both directions
-          setTranslateY(prev => Math.max(-80, Math.min(0, prev - delta)));
+          setTranslateY((prev) => Math.max(-80, Math.min(0, prev - delta)));
           lastScrollY = currentScrollY;
           ticking = false;
         });
@@ -197,7 +204,7 @@ const Navbar = ({ alwaysVisible = false }) => {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [translateY]);
+  }, [alwaysVisible]);
 
   // Close menu and search when clicking outside
   const handleClickOutside = useCallback((e) => {
@@ -494,10 +501,15 @@ return (
               <Link
                 href="/bag_page"
                 onClick={handleBagClick}
-                className="text-gray-600 hover:text-[#eb61a2] transition-none p-0"
+                className="relative text-gray-600 hover:text-[#eb61a2] transition-none p-0"
                 title="Bag"
               >
                 <Image src="/assets/NavbarIcons/Icons Bage.svg" alt="Bag" width={36} height={36} />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#eb61a2] text-white text-[10px] font-bold leading-[18px] text-center shadow">
+                    {bagBadgeLabel}
+                  </span>
+                )}
               </Link>
               {user ? (
                 <Link
@@ -771,11 +783,16 @@ return (
           </button>
           <button
             type="button"
-            className="flex-1 flex items-center justify-center py-2 min-w-0 text-inherit bg-transparent border-none cursor-pointer hover:text-[#eb61a2] transition-none"
+            className="relative flex-1 flex items-center justify-center py-2 min-w-0 text-inherit bg-transparent border-none cursor-pointer hover:text-[#eb61a2] transition-none"
             onClick={handleBagClick}
             title="Cart"
           >
             <Image src="/assets/NavbarIcons/Icons Bage.svg" alt="Bag" width={36} height={36} />
+            {cartCount > 0 && (
+              <span className="absolute top-1 right-[18%] min-w-[18px] h-[18px] px-1 rounded-full bg-[#eb61a2] text-white text-[10px] font-bold leading-[18px] text-center shadow">
+                {bagBadgeLabel}
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -817,11 +834,16 @@ return (
           </button>
           <button
             type="button"
-            className="flex-1 flex items-center justify-center py-2 min-w-0 text-inherit bg-transparent border-none cursor-pointer hover:text-[#eb61a2] transition-none"
+            className="relative flex-1 flex items-center justify-center py-2 min-w-0 text-inherit bg-transparent border-none cursor-pointer hover:text-[#eb61a2] transition-none"
             onClick={handleBagClick}
             title="Cart"
           >
             <Image src="/assets/NavbarIcons/Icons Bage.svg" alt="Bag" width={36} height={36} />
+            {cartCount > 0 && (
+              <span className="absolute top-1 right-[18%] min-w-[18px] h-[18px] px-1 rounded-full bg-[#eb61a2] text-white text-[10px] font-bold leading-[18px] text-center shadow">
+                {bagBadgeLabel}
+              </span>
+            )}
           </button>
           <button
             type="button"

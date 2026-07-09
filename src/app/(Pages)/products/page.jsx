@@ -13,10 +13,9 @@ import Loading from "../../../Components/Loading/Loading";
 import useUserActions from "../../../Components/Hooks/userUserActions";
 import useAuthContext from "../../../app/lib/Authentication/AuthContext";
 import { getProductImageUrl } from "../../../app/lib/productImage";
-import { formatPrice } from "../../../app/lib/formatPrice";
 import ProductPrice from "../../../Components/ProductPrice/ProductPrice";
 
-const ThirdImage = "/assets/third_image.png";
+const PRODUCTS_PER_PAGE = 12;
 
 const getBrand = (product) => {
   if (typeof product?.brand === "string") return product.brand;
@@ -32,13 +31,51 @@ const getBrand = (product) => {
 
 const getCategoryName = (product) => {
   if (typeof product?.category === "string") return product.category;
-  return product?.category?.name ?? product?.categoryName ?? "Uncategorized";
+  return (
+    product?.category?.name ??
+    product?.categoryName ??
+    product?.category_name ??
+    ""
+  );
 };
+
+const getCategoryId = (product) =>
+  product?.category?.id ?? product?.categoryId ?? product?.category_id ?? null;
 
 const getResponseItems = (data) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.content)) return data.content;
+  if (Array.isArray(data?.products)) return data.products;
+  if (Array.isArray(data?.data)) return data.data;
   return [];
+};
+
+/** Normalize popular/recommendation payloads into product objects + rank map. */
+const normalizeRecommendedProducts = (payload) => {
+  const items = getResponseItems(payload);
+  const products = [];
+  const rankById = new Map();
+
+  items.forEach((item, index) => {
+    const product =
+      item?.product && typeof item.product === "object"
+        ? item.product
+        : item?.productId || item?.id
+          ? item
+          : null;
+    if (!product) return;
+
+    const id = Number(product.id ?? item.productId ?? item.product_id);
+    if (!Number.isFinite(id)) return;
+
+    const normalized = { ...product, id };
+    if (!rankById.has(id)) {
+      rankById.set(id, index);
+      products.push(normalized);
+    }
+  });
+
+  return { products, rankById };
 };
 
 const Products = () => {
@@ -57,6 +94,9 @@ const Products = () => {
   const [promoLoading, setPromoLoading] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState(new Set());
   const [popularProducts, setPopularProducts] = useState([]);
+  const [recommendedRankById, setRecommendedRankById] = useState(() => new Map());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageLoading, setPageLoading] = useState(false);
 
   const urlFilters = useMemo(() => {
     const readList = (key) =>
@@ -71,12 +111,20 @@ const Products = () => {
     const ageRange = readList("ageRange");
     const skinType = readList("skinType");
     const popular = readList("popular");
-    return { brands, rating, ageRange, skinType, popular };
+    const category = searchParams.get("category")?.trim() || "";
+    const categoryId = searchParams.get("categoryId")?.trim() || "";
+    return { brands, rating, ageRange, skinType, popular, category, categoryId };
   }, [searchParams]);
 
   useEffect(() => {
     setSearchTerm(searchFromUrl);
   }, [searchFromUrl]);
+
+  // Reset pagination when filters / sort / search change
+  useEffect(() => {
+    setCurrentPage(1);
+    setPageLoading(false);
+  }, [sortBy, searchTerm, searchParams]);
 
   useEffect(() => {
     const updateSidebarPosition = () => {
@@ -108,16 +156,28 @@ const Products = () => {
   }, []);
 
   useEffect(() => {
-    const fetchPopularProducts = async () => {
+    const fetchRecommendedProducts = async () => {
       try {
-        const res = await axiosAuth.get("/products/popular");
-        setPopularProducts(getResponseItems(res?.data?.data));
+        // Prefer dedicated popular products list; fall back to sales ranking.
+        let payload = null;
+        try {
+          const res = await axiosAuth.get("/products/popular");
+          payload = res?.data?.data ?? res?.data;
+        } catch {
+          const res = await axiosAuth.get("/popular/all");
+          payload = res?.data?.data ?? res?.data;
+        }
+
+        const { products: recommended, rankById } = normalizeRecommendedProducts(payload);
+        setPopularProducts(recommended);
+        setRecommendedRankById(rankById);
       } catch (err) {
-        console.error("Error fetching popular products:", err);
+        console.error("Error fetching recommended products:", err);
         setPopularProducts([]);
+        setRecommendedRankById(new Map());
       }
     };
-    fetchPopularProducts();
+    fetchRecommendedProducts();
   }, []);
 
   // Fetch discounted prices + discount percentages for badges
@@ -248,9 +308,12 @@ const Products = () => {
   const getGroupedAndFilteredProducts = () => {
     const { popular: popularFilter = [] } = urlFilters;
     const isPopularFilterActive = popularFilter.length > 0;
+    const isRecommendedView = sortBy === "recommended" || isPopularFilterActive;
 
-    const { brands, rating, ageRange, skinType } = urlFilters;
-    const hasOtherFilters = brands.length > 0 || rating.length > 0 || ageRange.length > 0 || skinType.length > 0;
+    const { brands, rating, ageRange, skinType, category, categoryId } = urlFilters;
+    const hasCategoryFilter = Boolean(category || categoryId);
+    const hasOtherFilters =
+      brands.length > 0 || rating.length > 0 || ageRange.length > 0 || skinType.length > 0 || hasCategoryFilter;
 
     const getPriceRating = (() => {
       const prices = products.map((p) => Number(p?.price) || 0).sort((a, b) => a - b);
@@ -279,8 +342,23 @@ const Products = () => {
 
     const skinTypeCycle = ["Oily", "Dry", "Combination", "Sensitive", "Acne-prone"];
 
+    const matchesCategory = (p) => {
+      if (!hasCategoryFilter) return true;
+      if (categoryId) {
+        return String(getCategoryId(p) ?? "") === String(categoryId);
+      }
+      const productCategory = (getCategoryName(p) || "").trim().toLowerCase();
+      return productCategory === category.trim().toLowerCase();
+    };
+
     const matchesUrlFilters = (p) => {
       if (!hasOtherFilters) return true;
+      if (hasCategoryFilter && !matchesCategory(p)) return false;
+
+      const hasNonCategoryFilters =
+        brands.length > 0 || rating.length > 0 || ageRange.length > 0 || skinType.length > 0;
+      if (!hasNonCategoryFilters) return true;
+
       const stableIdx = (p?.id || 0) % ageRangeCycle.length;
       const productAgeRange = ageRangeCycle[stableIdx];
       const productSkinType = skinTypeCycle[stableIdx];
@@ -301,51 +379,62 @@ const Products = () => {
       return activeMatches.some((m) => m);
     };
 
+    const matchesSearch = (p) => {
+      if (!searchTerm.trim()) return true;
+      const term = searchTerm.trim().toLowerCase();
+      return p?.name?.toLowerCase().includes(term) || getBrand(p)?.toLowerCase().includes(term);
+    };
+
+    const sortByRecommendation = (list) =>
+      [...list].sort((a, b) => {
+        const aRank = recommendedRankById.has(Number(a?.id))
+          ? recommendedRankById.get(Number(a.id))
+          : Number.MAX_SAFE_INTEGER;
+        const bRank = recommendedRankById.has(Number(b?.id))
+          ? recommendedRankById.get(Number(b.id))
+          : Number.MAX_SAFE_INTEGER;
+        if (aRank !== bRank) return aRank - bRank;
+        return (Number(b?.id) || 0) - (Number(a?.id) || 0);
+      });
+
     let filtered;
 
-    if (isPopularFilterActive) {
-      // Always include popular products (union mode when other filters are used)
-      if (searchTerm.trim()) {
-        const term = searchTerm.trim().toLowerCase();
-        filtered = popularProducts.filter(
-          (p) => p?.name?.toLowerCase().includes(term) || getBrand(p)?.toLowerCase().includes(term),
-        );
-      } else {
-        filtered = [...popularProducts];
+    if (isRecommendedView) {
+      // Show the full recommendation/popular list (no artificial cap).
+      // Prefer API recommended products; enrich from catalog when needed.
+      const recommendedById = new Map();
+      popularProducts.forEach((p) => {
+        if (p?.id != null) recommendedById.set(Number(p.id), p);
+      });
+
+      // If popular payload is sparse, fill from catalog using recommendation ranks.
+      if (recommendedById.size === 0 && recommendedRankById.size > 0) {
+        products.forEach((p) => {
+          const id = Number(p?.id);
+          if (recommendedRankById.has(id)) recommendedById.set(id, p);
+        });
       }
 
-      const popularIds = new Set(filtered.map((p) => p?.id));
+      filtered = Array.from(recommendedById.values()).filter(matchesSearch);
+
+      // If recommendation API is empty, fall back to full catalog (still labeled Recommended).
+      if (filtered.length === 0) {
+        filtered = products.filter((p) => matchesSearch(p));
+      }
+
+      // Keep recommendation order, then optionally union matching catalog filters.
+      filtered = sortByRecommendation(filtered);
 
       if (hasOtherFilters) {
-        let extras = products.filter(matchesUrlFilters);
-
-        if (searchTerm.trim()) {
-          const term = searchTerm.trim().toLowerCase();
-          extras = extras.filter(
-            (p) => p?.name?.toLowerCase().includes(term) || getBrand(p)?.toLowerCase().includes(term),
-          );
-        }
-
-        for (let p of extras) {
-          if (p?.id && !popularIds.has(p.id)) {
-            filtered.push(p);
-          }
-        }
+        const seen = new Set(filtered.map((p) => Number(p?.id)).filter(Boolean));
+        const extras = sortByRecommendation(
+          products.filter((p) => matchesUrlFilters(p) && matchesSearch(p) && !seen.has(Number(p?.id)))
+        );
+        filtered = [...filtered, ...extras];
       }
     } else {
-      // Normal behavior on full catalog
-      filtered = [...products];
-
-      if (searchTerm.trim()) {
-        const term = searchTerm.trim().toLowerCase();
-        filtered = filtered.filter(
-          (p) => p?.name?.toLowerCase().includes(term) || getBrand(p)?.toLowerCase().includes(term),
-        );
-      }
-
-      if (hasOtherFilters) {
-        filtered = filtered.filter(matchesUrlFilters);
-      }
+      // Full catalog for All Products / other sorts
+      filtered = products.filter((p) => matchesSearch(p) && matchesUrlFilters(p));
     }
 
     if (sortBy === "price-high") {
@@ -354,37 +443,69 @@ const Products = () => {
       filtered.sort((a, b) => (Number(a?.price) || 0) - (Number(b?.price) || 0));
     } else if (sortBy === "new") {
       filtered.sort((a, b) => (b?.id || 0) - (a?.id || 0));
-    } else if (sortBy === "recommended") {
-      filtered.sort((a, b) => (b?.name?.length || 0) - (a?.name?.length || 0));
+    } else if (sortBy === "recommended" || isPopularFilterActive) {
+      filtered = sortByRecommendation(filtered);
     }
 
-    if (isPopularFilterActive) {
-      return { "Most Popular": filtered };
-    }
-
-    if (sortBy === "price-high" || sortBy === "price-low" || sortBy === "recommended" || sortBy === "new") {
-      const categoryLabels = {
-        "price-high": "Price High to Low",
-        "price-low": "Price Low to High",
-        recommended: "Recommended",
-        new: "What's New",
-      };
-      return { [categoryLabels[sortBy]]: filtered };
-    }
-
-    return filtered.reduce((acc, product) => {
-      const categoryName = getCategoryName(product);
-      if (!acc[categoryName]) acc[categoryName] = [];
-      acc[categoryName].push(product);
-      return acc;
-    }, {});
+    // Always return one combined list (single section + pagination)
+    return filtered;
   };
 
-  const groupedProducts = getGroupedAndFilteredProducts();
+  const filteredProducts = getGroupedAndFilteredProducts();
+  const totalItems = filteredProducts.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PRODUCTS_PER_PAGE));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIdx = (safePage - 1) * PRODUCTS_PER_PAGE;
+  const pageProducts = filteredProducts.slice(startIdx, startIdx + PRODUCTS_PER_PAGE);
+  const showingFrom = totalItems === 0 ? 0 : startIdx + 1;
+  const showingTo = Math.min(startIdx + PRODUCTS_PER_PAGE, totalItems);
+  const hasProducts = totalItems > 0;
 
-  const sortedCategories = Object.entries(groupedProducts).sort((a, b) => b[1].length - a[1].length);
+  const sectionTitle = (() => {
+    if (urlFilters.category) return String(urlFilters.category).toUpperCase();
+    if (urlFilters.categoryId) {
+      const match = products.find((p) => String(getCategoryId(p) ?? "") === String(urlFilters.categoryId));
+      const name = getCategoryName(match);
+      if (name) return name.toUpperCase();
+      return "CATEGORY";
+    }
+    if (sortBy === "recommended") return "Recommended";
+    if (sortBy === "new") return "What's New";
+    if (sortBy === "price-high") return "Price High to Low";
+    if (sortBy === "price-low") return "Price Low to High";
+    if (urlFilters.popular?.length) return "Most Popular";
+    return "All Products";
+  })();
 
-  const hasProducts = sortedCategories.length > 0;
+  const getPageNumbers = (current, pages) => {
+    if (pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
+    if (current <= 3) return [1, 2, 3, 4, "...", pages];
+    if (current >= pages - 2) return [1, "...", pages - 3, pages - 2, pages - 1, pages];
+    return [1, "...", current - 1, current, current + 1, "...", pages];
+  };
+
+  const goToPage = (page) => {
+    const next = Math.min(Math.max(1, page), totalPages);
+    if (next === safePage || pageLoading) return;
+
+    setPageLoading(true);
+
+    // Scroll up to products first so the new page is visible after loading
+    const section = document.getElementById("products-grid-section");
+    if (section) {
+      const navbarOffset = 100;
+      const top = section.getBoundingClientRect().top + window.scrollY - navbarOffset;
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // Brief loading, then swap page content
+    window.setTimeout(() => {
+      setCurrentPage(next);
+      setPageLoading(false);
+    }, 350);
+  };
 
   return (
     <>
@@ -456,93 +577,174 @@ const Products = () => {
             ) : !hasProducts ? (
               <p className="text-center text-gray-500 text-lg mt-20">No products found.</p>
             ) : (
-              <div className="mx-auto max-w-[1120px] space-y-16 pt-10">
-                {sortedCategories.map(([categoryName, productsInCategory]) => (
-                  <section key={categoryName}>
-                    <div className="mb-9 flex items-center gap-4 text-gray-900">
-                      <h2 className="text-lg font-bold">{categoryName}</h2>
-                      <span className="text-sm text-gray-400">|</span>
-                      <p className="text-sm">
-                        <span className="font-bold">{productsInCategory.length}</span> items
-                      </p>
+              <div className="mx-auto max-w-[1120px] pt-10" id="products-grid-section">
+                <section>
+                  <div className="mb-9 flex flex-wrap items-center gap-4 text-gray-900">
+                    <h2 className="text-lg font-bold">{sectionTitle}</h2>
+                    <span className="text-sm text-gray-400">|</span>
+                    <p className="text-sm">
+                      <span className="font-bold">{totalItems}</span> items
+                    </p>
+                    <p className="text-xs text-gray-500 ml-auto">
+                      Showing {showingFrom}–{showingTo} of {totalItems}
+                    </p>
+                  </div>
+
+                  {pageLoading ? (
+                    <div className="flex min-h-[28rem] items-center justify-center py-16">
+                      <div className="relative">
+                        <div className="h-12 w-12 rounded-full border-t-4 border-b-4 border-sky-200" />
+                        <div className="absolute top-0 left-0 h-12 w-12 rounded-full border-t-4 border-b-4 border-pink-400 animate-spin" />
+                      </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                      {productsInCategory.map((p) => {
-                        const brand = getBrand(p);
-                        const desc = p?.description?.trim() || "No description";
-                        return (
-                           <div
-                             key={p.id}
-                             className="bg-white rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col transition-all duration-300 hover:shadow-[0_8px_20px_rgba(0,0,0,0.1)] z-[100]"
-                           >
-                            <div className="relative h-[200px] bg-gray-100">
-                              <Image
-                                src={getProductImageUrl(p)}
-                                alt={p?.name || "Product"}
-                                fill
-                                className="object-cover cursor-pointer hover:scale-[1.02] transition-transform duration-300"
-                                sizes="(max-width: 600px) 50vw, 200px"
-                                unoptimized
-                                onClick={() => router.push(`/product_details?productId=${p.id}`)}
-                              />
+                  ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {pageProducts.map((p) => {
+                      const brand = getBrand(p);
+                      const desc = p?.description?.trim() || "No description";
+                      return (
+                        <div
+                          key={p.id}
+                          className="bg-white rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col transition-all duration-300 hover:shadow-[0_8px_20px_rgba(0,0,0,0.1)] z-[100]"
+                        >
+                          <div className="relative h-[200px] bg-gray-100">
+                            <Image
+                              src={getProductImageUrl(p)}
+                              alt={p?.name || "Product"}
+                              fill
+                              className="object-cover cursor-pointer hover:scale-[1.02] transition-transform duration-300"
+                              sizes="(max-width: 600px) 50vw, 200px"
+                              unoptimized
+                              onClick={() => router.push(`/product_details?productId=${p.id}`)}
+                            />
 
-                              {/* Discount % badge (only if active promotion with percentage) */}
-                              {discountPercentages[p?.id] != null && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openPromotionModal(p);
-                                  }}
-                                  className="absolute top-2 left-2 bg-[#eb61a2] text-white text-[12px] font-bold px-2.5 py-0.5 rounded-full shadow hover:bg-[#c8538a] active:scale-95 transition-all flex items-center gap-1 z-10"
-                                  title="View promotion details"
-                                >
-                                  {discountPercentages[p.id]}%
-                                </button>
-                              )}
-
-                               <button
-                                 type="button"
-                                 className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 hover:bg-red-50 transition-colors"
-                                 onClick={() => handleFavorite(p.id)}
-                               >
-                                 <FaHeart 
-                                   className={`text-sm ${favoriteIds.has(p.id) ? 'text-[#F83E94]' : 'text-[#2F2F2F]'}`} 
-                                 />
-                               </button>
-                            </div>
-                            <div className="flex flex-col flex-1 p-4 gap-1 min-w-0 text-center">
-                              {brand && (
-                                <span className="opacity-70 text-xs font-medium text-gray-500 uppercase tracking-wide truncate">
-                                  {brand}
-                                </span>
-                              )}
-                              <h3 className="text-[1.15rem] font-bold text-gray-800 truncate" title={p?.name}>
-                                {p?.name || "No Name"}
-                              </h3>
-                              <p className="text-xs text-gray-500 truncate opacity-80" title={desc}>
-                                {desc}
-                              </p>
-                               <ProductPrice
-                                 price={p?.price}
-                                 discountedPrice={discountedPrices[p?.id]}
-                                 className="mt-1"
-                                 centered
-                               />
+                            {discountPercentages[p?.id] != null && (
                               <button
                                 type="button"
-                                className="mt-3 w-full bg-[#d13e82] text-white text-sm font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#c32c70] transition-colors"
-                                onClick={() => handleAddToCart(p.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openPromotionModal(p);
+                                }}
+                                className="absolute top-2 left-2 bg-[#eb61a2] text-white text-[12px] font-bold px-2.5 py-0.5 rounded-full shadow hover:bg-[#c8538a] active:scale-95 transition-all flex items-center gap-1 z-10"
+                                title="View promotion details"
                               >
-                                <FaCartPlus className="text-base" /> Add to Cart
+                                {discountPercentages[p.id]}%
                               </button>
-                            </div>
+                            )}
+
+                            <button
+                              type="button"
+                              className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 hover:bg-red-50 transition-colors"
+                              onClick={() => handleFavorite(p.id)}
+                            >
+                              <FaHeart
+                                className={`text-sm ${favoriteIds.has(p.id) ? "text-[#F83E94]" : "text-[#2F2F2F]"}`}
+                              />
+                            </button>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                ))}
+                          <div className="flex flex-col flex-1 p-4 gap-1 min-w-0 text-center">
+                            {brand && (
+                              <span className="opacity-70 text-xs font-medium text-gray-500 uppercase tracking-wide truncate">
+                                {brand}
+                              </span>
+                            )}
+                            <h3 className="text-[1.15rem] font-bold text-gray-800 truncate" title={p?.name}>
+                              {p?.name || "No Name"}
+                            </h3>
+                            <p className="text-xs text-gray-500 truncate opacity-80" title={desc}>
+                              {desc}
+                            </p>
+                            <ProductPrice
+                              price={p?.price}
+                              discountedPrice={discountedPrices[p?.id]}
+                              className="mt-1"
+                              centered
+                            />
+                            <button
+                              type="button"
+                              className="mt-3 w-full bg-[#d13e82] text-white text-sm font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#c32c70] transition-colors"
+                              onClick={() => handleAddToCart(p.id)}
+                            >
+                              <FaCartPlus className="text-base" /> Add to Cart
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  )}
+
+                  {totalPages > 1 && (
+                    <nav
+                      className="mt-10 flex flex-wrap items-center justify-center gap-2"
+                      aria-label="Products pagination"
+                    >
+                      <button
+                        type="button"
+                        disabled={safePage <= 1 || pageLoading}
+                        onClick={() => goToPage(safePage - 1)}
+                        className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#eb61a2] hover:text-[#eb61a2] transition-colors"
+                      >
+                        Prev
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={safePage <= 1 || pageLoading}
+                        onClick={() => goToPage(safePage - 1)}
+                        className="min-w-[2.5rem] h-10 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#eb61a2] hover:text-[#eb61a2] transition-colors"
+                        aria-label="Previous page"
+                      >
+                        &lt;
+                      </button>
+
+                      {getPageNumbers(safePage, totalPages).map((page, idx) =>
+                        page === "..." ? (
+                          <span
+                            key={`ellipsis-${idx}`}
+                            className="min-w-[2rem] text-center text-sm text-gray-400 select-none"
+                          >
+                            …
+                          </span>
+                        ) : (
+                          <button
+                            key={`page-${page}`}
+                            type="button"
+                            disabled={pageLoading}
+                            aria-current={page === safePage ? "page" : undefined}
+                            onClick={() => goToPage(page)}
+                            className={`min-w-[2.5rem] h-10 rounded-lg border text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                              page === safePage
+                                ? "border-[#eb61a2] bg-[#eb61a2] text-white"
+                                : "border-gray-200 bg-white text-gray-700 hover:border-[#eb61a2] hover:text-[#eb61a2]"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={safePage >= totalPages || pageLoading}
+                        onClick={() => goToPage(safePage + 1)}
+                        className="min-w-[2.5rem] h-10 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#eb61a2] hover:text-[#eb61a2] transition-colors"
+                        aria-label="Next page"
+                      >
+                        &gt;
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={safePage >= totalPages || pageLoading}
+                        onClick={() => goToPage(safePage + 1)}
+                        className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#eb61a2] hover:text-[#eb61a2] transition-colors"
+                      >
+                        Next
+                      </button>
+                    </nav>
+                  )}
+                </section>
               </div>
             )}
           </div>
